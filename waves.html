@@ -117,6 +117,9 @@
     .legend-fun { background: #67e8f9; }
     .legend-solid { background: #22d3ee; }
     .legend-xl { background: #0284c7; color: #e0f2fe; }
+    .legend-quality-green { background: #22c55e; color: #052e16; }
+    .legend-quality-yellow { background: #facc15; color: #3f2a00; }
+    .legend-quality-red { background: #ef4444; color: #fee2e2; }
     .panel-header {
       cursor: pointer;
       user-select: none;
@@ -275,6 +278,26 @@
       margin-top: 0.45rem;
       line-height: 1.5;
     }
+    .surf-popup .quality-chip {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 0.14rem 0.48rem;
+      font-size: 0.74rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+    .surf-popup .quality-chip.quality-green {
+      background: #22c55e;
+      color: #052e16;
+    }
+    .surf-popup .quality-chip.quality-yellow {
+      background: #facc15;
+      color: #3f2a00;
+    }
+    .surf-popup .quality-chip.quality-red {
+      background: #ef4444;
+      color: #fee2e2;
+    }
     .surf-popup .tides {
       margin-top: 0.55rem;
       color: #334155;
@@ -298,6 +321,21 @@
       justify-content: center;
       gap: 0.28rem;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+    }
+    .surf-marker.quality-green {
+      background: rgba(20, 83, 45, 0.95);
+      border-color: rgba(74, 222, 128, 0.95);
+      color: #f0fdf4;
+    }
+    .surf-marker.quality-yellow {
+      background: rgba(113, 63, 18, 0.95);
+      border-color: rgba(250, 204, 21, 0.95);
+      color: #fef9c3;
+    }
+    .surf-marker.quality-red {
+      background: rgba(127, 29, 29, 0.95);
+      border-color: rgba(248, 113, 113, 0.95);
+      color: #fee2e2;
     }
     .surf-marker.best {
       border-color: #f8fafc;
@@ -333,7 +371,7 @@
   <header>
     <h1>🏄 PNW Wave Finder</h1>
     <p class="subtitle">
-      Wave outlook across Washington and Oregon surf spots ·
+      Wave outlook across Washington, Oregon, and BC surf spots ·
       <a href="powder.html">❄️ Find the Snow</a> ·
       <a href="index.html">☀️ Sunshine Finder</a>
     </p>
@@ -370,6 +408,12 @@
       { name: 'Ocean Shores', region: 'Washington', note: 'Damon Point / beach break', lat: 47.0087, lon: -124.1618, tideStationId: '9441102', tideStationName: 'Westport' },
       { name: 'La Push', region: 'Washington', note: 'First Beach / Rialto zone', lat: 47.9110, lon: -124.6350, tideStationId: '9442396', tideStationName: 'La Push, Quillayute River' },
       { name: 'Neah Bay', region: 'Washington', note: 'Cape Flattery exposure', lat: 48.3707, lon: -124.6250, tideStationId: '9443090', tideStationName: 'Neah Bay' },
+      { name: 'Tofino', region: 'British Columbia', note: 'Chesterman / Cox Bay', lat: 49.1536, lon: -125.9067, tideStationId: '9443090', tideStationName: 'Neah Bay' },
+      { name: 'Ucluelet', region: 'British Columbia', note: 'Long Beach / Wickaninnish', lat: 48.9397, lon: -125.5461, tideStationId: '9443090', tideStationName: 'Neah Bay' },
+      { name: 'Port Renfrew', region: 'British Columbia', note: 'Sombrio / wide open coast', lat: 48.5583, lon: -124.4028, tideStationId: '9443090', tideStationName: 'Neah Bay' },
+      { name: 'Jordan River', region: 'British Columbia', note: 'South coast point and beach mix', lat: 48.4272, lon: -123.9690, tideStationId: '9443090', tideStationName: 'Neah Bay' },
+      { name: 'Sooke', region: 'British Columbia', note: 'Harbour / rocky point', lat: 48.3747, lon: -123.7269, tideStationId: '9443090', tideStationName: 'Neah Bay' },
+      { name: 'Sombrio', region: 'British Columbia', note: 'Sombrio Beach', lat: 48.5388, lon: -124.2960, tideStationId: '9443090', tideStationName: 'Neah Bay' },
       { name: 'Long Beach', region: 'Washington', note: 'South Washington beach break', lat: 46.3527, lon: -124.0554, tideStationId: '9439040', tideStationName: 'Astoria' },
       { name: 'Cannon Beach', region: 'Oregon', note: 'North Oregon point and beach mix', lat: 45.8918, lon: -123.9615, tideStationId: '9439040', tideStationName: 'Astoria' },
       { name: 'Pacific City', region: 'Oregon', note: 'Cape Kiwanda', lat: 45.2032, lon: -123.9629, tideStationId: '9437540', tideStationName: 'Garibaldi' },
@@ -470,6 +514,25 @@
       return { label: 'Small', emoji: '🌤️' };
     }
 
+    function getWaveQuality(heightValue, periodValue) {
+      const waveFeet = metersToFeet(heightValue);
+      const wavePeriod = Number(periodValue);
+
+      if (!Number.isFinite(waveFeet) || !Number.isFinite(wavePeriod)) {
+        return { label: 'Red', emoji: '🔴', markerClass: 'quality-red' };
+      }
+
+      if (waveFeet >= 3 && waveFeet <= 7 && wavePeriod >= 10) {
+        return { label: 'Green', emoji: '🟢', markerClass: 'quality-green' };
+      }
+
+      if (waveFeet >= 2 && waveFeet <= 9 && wavePeriod >= 8) {
+        return { label: 'Yellow', emoji: '🟡', markerClass: 'quality-yellow' };
+      }
+
+      return { label: 'Red', emoji: '🔴', markerClass: 'quality-red' };
+    }
+
     function formatNoaaTime(timestamp) {
       if (!timestamp) return 'N/A';
       const [datePart, timePart] = timestamp.split(' ');
@@ -483,11 +546,11 @@
       });
     }
 
-    function createEmojiIcon(heightValue, isBest) {
+    function createEmojiIcon(heightValue, qualityClass, isBest) {
       const band = getWaveBand(heightValue);
       return L.divIcon({
         html: `
-          <div class="surf-marker${isBest ? ' best' : ''}">
+          <div class="surf-marker ${qualityClass}${isBest ? ' best' : ''}">
             <span>${isBest ? '🏄' : band.emoji}</span>
             <span class="surf-marker-height">${formatWaveHeightShort(heightValue)}</span>
           </div>
@@ -589,6 +652,7 @@
       const wavePeriod = daily.wave_period_max[dayIndex];
       const waveDirection = daily.wave_direction_dominant[dayIndex];
       const band = getWaveBand(waveHeight);
+      const quality = getWaveQuality(waveHeight, wavePeriod);
       const waveFeet = metersToFeet(waveHeight);
 
       return {
@@ -600,6 +664,7 @@
         highTide,
         lowTide,
         band,
+        quality,
         score: Number.isFinite(waveFeet) ? (waveFeet * 100) + Number(wavePeriod || 0) : -1
       };
     }
@@ -630,7 +695,10 @@
           <div class="legend-item"><span class="legend-pill legend-fun">3-5 ft</span><span>Fun surf</span></div>
           <div class="legend-item"><span class="legend-pill legend-solid">5-7 ft</span><span>Solid / stronger push</span></div>
           <div class="legend-item"><span class="legend-pill legend-xl">7+ ft</span><span>Largest swell on the map</span></div>
-          <p class="legend-note">Best Surf ranks spots by modeled daily max wave height, with wave period used as a tiebreaker. Tide times come from the nearest NOAA station for each spot.</p>
+          <div class="legend-item"><span class="legend-pill legend-quality-green">Green</span><span>Wave quality: cleaner/organized swell</span></div>
+          <div class="legend-item"><span class="legend-pill legend-quality-yellow">Yellow</span><span>Wave quality: workable but mixed</span></div>
+          <div class="legend-item"><span class="legend-pill legend-quality-red">Red</span><span>Wave quality: weak, choppy, or oversized</span></div>
+          <p class="legend-note">Best Surf ranks spots by modeled daily max wave height, with wave period used as a tiebreaker. Quality colors are derived from modeled wave height + period (not Surfline ratings). Tide times come from the nearest NOAA station for each spot.</p>
         </div>
       `;
       if (isMobile) div.classList.add('panel-collapsed');
@@ -687,7 +755,7 @@
           <div class="best-head">
             <div>
               <div class="best-name">${best.spot.name}</div>
-              <div class="best-region">${best.spot.region} · ${best.summary.band.label}</div>
+              <div class="best-region">${best.spot.region} · ${best.summary.band.label} · ${best.summary.quality.emoji} ${best.summary.quality.label} quality</div>
             </div>
             <div class="best-badge">${best.summary.band.emoji}</div>
           </div>
@@ -716,7 +784,7 @@
               ${runnersUp.map(({ spot, summary }) => `
                 <div class="runner-item">
                   <strong>${spot.name}</strong>
-                  <span>${formatWaveHeightShort(summary.waveHeight)} · ${formatWavePeriod(summary.wavePeriod)}</span>
+                  <span>${formatWaveHeightShort(summary.waveHeight)} · ${summary.quality.emoji} ${summary.quality.label}</span>
                 </div>
               `).join('')}
             </div>
@@ -737,7 +805,7 @@
       const bestSpotName = ranked[0]?.spot.name || null;
 
       ranked.forEach(({ spot, summary }) => {
-        const icon = createEmojiIcon(summary.waveHeight, spot.name === bestSpotName);
+        const icon = createEmojiIcon(summary.waveHeight, summary.quality.markerClass, spot.name === bestSpotName);
         const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(map);
 
         marker.bindPopup(`
@@ -746,6 +814,7 @@
             <div class="wave-emoji">${spot.name === bestSpotName ? '🏄' : summary.band.emoji}</div>
             <div class="conditions">${spot.region} · ${spot.note}</div>
             <div class="stats">
+              <span class="quality-chip ${summary.quality.markerClass}">${summary.quality.emoji} ${summary.quality.label} quality</span><br>
               Wave max: ${formatWaveHeight(summary.waveHeight)}<br>
               Period: ${formatWavePeriod(summary.wavePeriod)}<br>
               Direction: ${formatWaveDirection(summary.waveDirection)}
