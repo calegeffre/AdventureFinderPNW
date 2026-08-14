@@ -175,6 +175,12 @@
       color: #94a3b8;
       margin-top: 0.1rem;
     }
+    .top3-sun {
+      font-size: 0.72rem;
+      color: #facc15;
+      margin-top: 0.08rem;
+      font-weight: 600;
+    }
     .top3-none {
       color: #94a3b8;
       font-size: 0.85rem;
@@ -282,6 +288,12 @@
       { name: 'Seattle', lat: 47.6062, lon: -122.3321 },
       { name: 'Bellingham', lat: 48.7519, lon: -122.4787 },
       { name: 'Vancouver, BC', lat: 49.2827, lon: -123.1207 },
+      { name: 'Tofino, BC', lat: 49.1536, lon: -125.9067 },
+      { name: 'Ucluelet, BC', lat: 48.9397, lon: -125.5461 },
+      { name: 'Port Renfrew, BC', lat: 48.5583, lon: -124.4028 },
+      { name: 'Jordan River, BC', lat: 48.4272, lon: -123.9690 },
+      { name: 'Sooke, BC', lat: 48.3747, lon: -123.7269 },
+      { name: 'Victoria, BC', lat: 48.4284, lon: -123.3656 },
       { name: 'Vantage', lat: 46.9454, lon: -119.9869 },
       { name: 'Spokane', lat: 47.6588, lon: -117.4260 },
       { name: 'Portland', lat: 45.5152, lon: -122.6784 },
@@ -479,6 +491,19 @@
       return cityData.dailyData ? cityData.dailyData.weather_code[dayIndex] : null;
     }
 
+    function getSunHoursForDay(cityData, dayIndex) {
+      if (!cityData.dailyData || !Array.isArray(cityData.dailyData.sunshine_duration)) {
+        return null;
+      }
+      const seconds = Number(cityData.dailyData.sunshine_duration[dayIndex]);
+      return Number.isFinite(seconds) ? seconds / 3600 : null;
+    }
+
+    function formatSunHours(hours) {
+      if (!Number.isFinite(Number(hours))) return 'Sun data unavailable';
+      return `${Number(hours).toFixed(1)} hr sun`;
+    }
+
     // Track current markers and selected day
     let markers = [];
     let selectedDayIndex = 0;
@@ -607,7 +632,8 @@
           lat: c.lat,
           lon: c.lon,
           weatherCode: dominantDaylightCode(c, dayIndex),
-          distance: distanceMiles(SEATTLE_LAT, SEATTLE_LON, c.lat, c.lon)
+          distance: distanceMiles(SEATTLE_LAT, SEATTLE_LON, c.lat, c.lon),
+          sunHours: getSunHoursForDay(c, dayIndex)
         }))
         .sort((a, b) => a.distance - b.distance);
 
@@ -637,7 +663,8 @@
               lat: city.lat,
               lon: city.lon,
               weatherCode: dominantDaylightCode(cityData, dayIndex),
-              distance: city.distance
+              distance: city.distance,
+              sunHours: getSunHoursForDay(cityData, dayIndex)
             });
           }
         }
@@ -674,6 +701,7 @@
               lon: city.lon,
               weatherCode: dominantDaylightCode(cityData, dayIndex),
               distance: city.distance,
+              sunHours: getSunHoursForDay(cityData, dayIndex)
             });
           }
         }
@@ -690,6 +718,7 @@
       const medals = ['🥇', '🥈', '🥉'];
       panel.innerHTML = top3.map((city, i) => {
         const weather = weatherCodes[city.weatherCode] || UNKNOWN_WEATHER;
+        const sunText = formatSunHours(city.sunHours);
         return `
           <div class="top3-item">
             <span class="top3-rank">${medals[i]}</span>
@@ -697,6 +726,7 @@
             <div class="top3-info">
               <div class="top3-city">${city.name}</div>
               <div class="top3-dist">${Math.round(city.distance)} mi from Seattle</div>
+              <div class="top3-sun">${sunText}</div>
             </div>
           </div>
         `;
@@ -715,7 +745,7 @@
     }
 
     async function fetchWeatherForCity(city, forecastDays) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
       
       try {
         const response = await fetch(url);
