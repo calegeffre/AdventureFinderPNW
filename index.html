@@ -80,6 +80,23 @@
     .legend-emoji {
       font-size: 1.2rem;
     }
+    .legend-toggle {
+      margin-top: 0.45rem;
+      padding-top: 0.45rem;
+      border-top: 1px solid rgba(15, 52, 96, 0.4);
+    }
+    .legend-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .legend-toggle input {
+      accent-color: #ffd700;
+      cursor: pointer;
+    }
     footer {
       background: #16213e;
       padding: 0.75rem;
@@ -159,6 +176,15 @@
       min-width: 24px;
       text-align: center;
     }
+    .top3-aqi {
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.1rem 0.38rem;
+      min-width: 34px;
+      text-align: center;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
     .top3-info {
       flex: 1;
       min-width: 0;
@@ -180,6 +206,70 @@
       font-size: 0.85rem;
       text-align: center;
       padding: 0.5rem 0;
+    }
+    .marker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+    .marker-emoji {
+      font-size: 2rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .marker-aqi {
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.1rem 0.38rem;
+      line-height: 1.2;
+      min-width: 30px;
+      text-align: center;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+    .popup-aqi {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.05rem 0.4rem;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      vertical-align: middle;
+    }
+    .aqi-good {
+      background: #22c55e;
+      color: #052e16;
+      border-color: #86efac;
+    }
+    .aqi-moderate {
+      background: #facc15;
+      color: #3f2f00;
+      border-color: #fde68a;
+    }
+    .aqi-usg {
+      background: #fb923c;
+      color: #431407;
+      border-color: #fdba74;
+    }
+    .aqi-unhealthy {
+      background: #ef4444;
+      color: #fff1f2;
+      border-color: #fca5a5;
+    }
+    .aqi-very-unhealthy {
+      background: #a855f7;
+      color: #f5f3ff;
+      border-color: #d8b4fe;
+    }
+    .aqi-hazardous {
+      background: #7f1d1d;
+      color: #fff1f2;
+      border-color: #fda4af;
+    }
+    .aqi-unknown {
+      background: rgba(15, 23, 42, 0.85);
+      color: #f8fafc;
+      border-color: rgba(148, 163, 184, 0.5);
     }
     /* Collapsible panel styles */
     .panel-header {
@@ -270,12 +360,18 @@
   </div>
   
   <footer>
-    Data from <a href="https://open-meteo.com/" style="color:#ffd700">Open-Meteo API</a> • 
+    Data from <a href="https://open-meteo.com/" style="color:#ffd700">Open-Meteo API</a> and <a href="https://eonet.gsfc.nasa.gov/" style="color:#ffd700">NASA EONET</a> •
     Updated: <span id="lastUpdated">-</span>
   </footer>
 
   <script>
     const MOBILE_BREAKPOINT = '(max-width: 640px)';
+    const FIRE_SEARCH_BOUNDS = {
+      minLat: 41.0,
+      maxLat: 52.5,
+      minLon: -126.5,
+      maxLon: -108.0,
+    };
 
     // Pacific Northwest cities with coordinates
     const cities = [
@@ -459,9 +555,35 @@
       return cityData.dailyData ? cityData.dailyData.weather_code[dayIndex] : null;
     }
 
+    function getAqiForDay(cityData, dayIndex) {
+      if (!cityData.aqiHourly || !Array.isArray(cityData.aqiHourly)) return null;
+      const startHour = dayIndex * 24;
+      const endHour = startHour + 24;
+      const dayAqiValues = cityData.aqiHourly
+        .slice(startHour, endHour)
+        .filter(value => Number.isFinite(value));
+
+      if (dayAqiValues.length === 0) return null;
+      return Math.round(Math.max(...dayAqiValues));
+    }
+
+    function getAqiCategory(aqi) {
+      if (!Number.isFinite(aqi)) return { className: 'aqi-unknown', label: 'Unknown' };
+      if (aqi <= 50) return { className: 'aqi-good', label: 'Good' };
+      if (aqi <= 100) return { className: 'aqi-moderate', label: 'Moderate' };
+      if (aqi <= 150) return { className: 'aqi-usg', label: 'Unhealthy for Sensitive Groups' };
+      if (aqi <= 200) return { className: 'aqi-unhealthy', label: 'Unhealthy' };
+      if (aqi <= 300) return { className: 'aqi-very-unhealthy', label: 'Very Unhealthy' };
+      return { className: 'aqi-hazardous', label: 'Hazardous' };
+    }
+
     // Track current markers and selected day
     let markers = [];
+    let fireMarkers = [];
+    let activeFireData = [];
     let selectedDayIndex = 0;
+    let showAqi = false;
+    let showFires = false;
     
     // Calculate days needed for forecast (up to next Sunday)
     function calculateForecastDays() {
@@ -539,6 +661,13 @@
           <div class="legend-item"><span class="legend-emoji">☁️</span> Cloudy</div>
           <div class="legend-item"><span class="legend-emoji">🌧️</span> Rain</div>
           <div class="legend-item"><span class="legend-emoji">❄️</span> Snow</div>
+          <div class="legend-item"><span class="legend-emoji">🔥</span> Active Fire</div>
+          <div class="legend-toggle">
+            <label><input type="checkbox" id="toggleFires"> Show fires</label>
+          </div>
+          <div class="legend-toggle">
+            <label><input type="checkbox" id="toggleAqi"> Show AQI</label>
+          </div>
         </div>
       `;
       if (isMobile) div.classList.add('panel-collapsed');
@@ -587,6 +716,7 @@
           lat: c.lat,
           lon: c.lon,
           weatherCode: bestSunnyCode(c, dayIndex),
+          aqi: getAqiForDay(c, dayIndex),
           distance: distanceMiles(SEATTLE_LAT, SEATTLE_LON, c.lat, c.lon)
         }))
         .sort((a, b) => a.distance - b.distance);
@@ -617,6 +747,7 @@
               lat: city.lat,
               lon: city.lon,
               weatherCode: bestSunnyCode(cityData, dayIndex),
+              aqi: getAqiForDay(cityData, dayIndex),
               distance: city.distance
             });
           }
@@ -653,6 +784,7 @@
               lat: city.lat,
               lon: city.lon,
               weatherCode: bestSunnyCode(cityData, dayIndex),
+              aqi: getAqiForDay(cityData, dayIndex),
               distance: city.distance,
             });
           }
@@ -670,10 +802,15 @@
       const medals = ['🥇', '🥈', '🥉'];
       panel.innerHTML = top3.map((city, i) => {
         const weather = weatherCodes[city.weatherCode] || UNKNOWN_WEATHER;
+        const aqiMeta = getAqiCategory(city.aqi);
+        const aqiDisplay = showAqi && city.aqi !== null
+          ? `<span class="top3-aqi ${aqiMeta.className}" title="AQI ${city.aqi} (${aqiMeta.label})">${city.aqi}</span>`
+          : '';
         return `
           <div class="top3-item">
             <span class="top3-rank">${medals[i]}</span>
             <span class="top3-emoji">${weather.emoji}</span>
+            ${aqiDisplay}
             <div class="top3-info">
               <div class="top3-city">${city.name}</div>
               <div class="top3-dist">${Math.round(city.distance)} mi from Seattle</div>
@@ -684,27 +821,142 @@
     }
 
     // Create custom emoji marker
-    function createEmojiIcon(emoji, isSunny) {
+    function createEmojiIcon(emoji, isSunny, aqi) {
+      const aqiMeta = getAqiCategory(aqi);
+      const aqiMarkup = aqi !== null
+        ? `<span class="marker-aqi ${aqiMeta.className}" title="AQI ${aqi} (${aqiMeta.label})">${aqi}</span>`
+        : '';
       return L.divIcon({
-        html: `<div style="font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); filter: ${isSunny ? 'drop-shadow(0 0 8px gold)' : 'none'};">${emoji}</div>`,
+        html: `<div class="marker-wrap"><span class="marker-emoji" style="filter: ${isSunny ? 'drop-shadow(0 0 8px gold)' : 'none'};">${emoji}</span>${aqiMarkup}</div>`,
         className: 'emoji-marker',
-        iconSize: [40, 40],
+        iconSize: [74, 40],
         iconAnchor: [20, 20],
         popupAnchor: [0, -20]
       });
     }
 
+    function createFireIcon() {
+      return L.divIcon({
+        html: `<div class="marker-emoji">🔥</div>`,
+        className: 'fire-marker',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -12]
+      });
+    }
+
+    function clearFireMarkers() {
+      fireMarkers.forEach(marker => map.removeLayer(marker));
+      fireMarkers = [];
+    }
+
+    function renderFireMarkers() {
+      clearFireMarkers();
+      if (!showFires) return;
+
+      activeFireData.forEach(fire => {
+        const marker = L.marker([fire.lat, fire.lon], { icon: createFireIcon() }).addTo(map);
+        const updatedAt = fire.lastSeen ? new Date(fire.lastSeen).toLocaleString() : 'Unknown';
+        marker.bindPopup(`
+          <div class="city-popup">
+            <h3>${fire.title}</h3>
+            <div class="conditions">🔥 Active wildfire</div>
+            <div class="temp">Updated: ${updatedAt}</div>
+          </div>
+        `);
+        fireMarkers.push(marker);
+      });
+    }
+
+    function isInFireSearchBounds(lat, lon) {
+      return (
+        lat >= FIRE_SEARCH_BOUNDS.minLat &&
+        lat <= FIRE_SEARCH_BOUNDS.maxLat &&
+        lon >= FIRE_SEARCH_BOUNDS.minLon &&
+        lon <= FIRE_SEARCH_BOUNDS.maxLon
+      );
+    }
+
+    function getLatestFirePoint(geometry) {
+      if (!Array.isArray(geometry)) return null;
+      const points = geometry.filter(item =>
+        item &&
+        item.type === 'Point' &&
+        Array.isArray(item.coordinates) &&
+        item.coordinates.length >= 2
+      );
+      if (points.length === 0) return null;
+
+      points.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      return points[0];
+    }
+
+    async function fetchActiveFires() {
+      const firesUrl = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=250';
+      try {
+        const response = await fetch(firesUrl);
+        if (!response.ok) {
+          throw new Error(`Status ${response.status}`);
+        }
+        const data = await response.json();
+        const events = Array.isArray(data.events) ? data.events : [];
+
+        activeFireData = events
+          .map(event => {
+            const latestPoint = getLatestFirePoint(event.geometry);
+            if (!latestPoint) return null;
+            const lon = latestPoint.coordinates[0];
+            const lat = latestPoint.coordinates[1];
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            if (!isInFireSearchBounds(lat, lon)) return null;
+
+            return {
+              id: event.id,
+              title: event.title || 'Active wildfire',
+              lat,
+              lon,
+              lastSeen: latestPoint.date || null,
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => distanceMiles(SEATTLE_LAT, SEATTLE_LON, a.lat, a.lon) - distanceMiles(SEATTLE_LAT, SEATTLE_LON, b.lat, b.lon))
+          .slice(0, 40);
+      } catch (error) {
+        console.error('Failed to fetch active wildfires:', error);
+        activeFireData = [];
+      }
+    }
+
     async function fetchWeatherForCity(city, forecastDays) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
+      const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=us_aqi&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
       
       try {
-        const response = await fetch(url);
+        const response = await fetch(weatherUrl);
+        if (!response.ok) {
+          throw new Error(`Status ${response.status}`);
+        }
         const data = await response.json();
+        let aqiHourly = null;
+
+        try {
+          const aqiResponse = await fetch(aqiUrl);
+          if (!aqiResponse.ok) {
+            throw new Error(`Status ${aqiResponse.status}`);
+          }
+          const aqiData = await aqiResponse.json();
+          aqiHourly = aqiData.hourly && Array.isArray(aqiData.hourly.us_aqi)
+            ? aqiData.hourly.us_aqi
+            : null;
+        } catch (aqiError) {
+          console.error(`Failed to fetch AQI for ${city.name}:`, aqiError);
+        }
         
         return {
           ...city,
           dailyData: data.daily,
           hourlyData: data.hourly || null,
+          aqiHourly,
           currentTemp: Math.round(data.current.temperature_2m)
         };
       } catch (error) {
@@ -713,6 +965,7 @@
           ...city,
           dailyData: null,
           hourlyData: null,
+          aqiHourly: null,
           currentTemp: '--'
         };
       }
@@ -755,18 +1008,24 @@
       
       allCityData.forEach(cityData => {
         const dayWeather = getWeatherForDay(cityData, dayIndex);
-        const icon = createEmojiIcon(dayWeather.weather.emoji, dayWeather.isSunny);
+        const aqiValue = getAqiForDay(cityData, dayIndex);
+        const icon = createEmojiIcon(dayWeather.weather.emoji, dayWeather.isSunny, showAqi ? aqiValue : null);
         const marker = L.marker([cityData.lat, cityData.lon], { icon }).addTo(map);
         
         const tempDisplay = isToday 
           ? `Currently: ${cityData.currentTemp}°F<br>High: ${dayWeather.highTemp}°F / Low: ${dayWeather.lowTemp}°F`
           : `High: ${dayWeather.highTemp}°F / Low: ${dayWeather.lowTemp}°F`;
+        const aqiMeta = getAqiCategory(aqiValue);
+        const aqiDisplay = showAqi && aqiValue !== null
+          ? `<div class="conditions">AQI: <span class="popup-aqi ${aqiMeta.className}">${aqiValue}</span> ${aqiMeta.label}</div>`
+          : '';
         
         marker.bindPopup(`
           <div class="city-popup">
             <h3>${cityData.name}</h3>
             <div class="weather-emoji">${dayWeather.weather.emoji}</div>
             <div class="conditions">${dayWeather.weather.desc}</div>
+            ${aqiDisplay}
             <div class="temp">${tempDisplay}</div>
             ${dayWeather.isSunny ? '<p style="color: gold; font-weight: bold; margin-top: 0.5rem;">☀️ Sunny!</p>' : ''}
           </div>
@@ -804,6 +1063,11 @@
 
       // Update Top 3 panel asynchronously (may fetch additional fallback data)
       updateTop3Panel(selectedDayIndex);
+
+      if (showFires) {
+        await fetchActiveFires();
+        renderFireMarkers();
+      }
     }
     
     // Tab click handlers
@@ -827,6 +1091,29 @@
         updateTop3Panel(dayIndex);
       });
     });
+
+    const firesToggle = document.getElementById('toggleFires');
+    const aqiToggle = document.getElementById('toggleAqi');
+
+    if (firesToggle) {
+      showFires = firesToggle.checked;
+      firesToggle.addEventListener('change', async () => {
+        showFires = firesToggle.checked;
+        if (showFires && activeFireData.length === 0) {
+          await fetchActiveFires();
+        }
+        renderFireMarkers();
+      });
+    }
+
+    if (aqiToggle) {
+      showAqi = aqiToggle.checked;
+      aqiToggle.addEventListener('change', () => {
+        showAqi = aqiToggle.checked;
+        displayWeatherForDay(selectedDayIndex);
+        updateTop3Panel(selectedDayIndex);
+      });
+    }
 
     // Initialize
     updateTabLabels();
