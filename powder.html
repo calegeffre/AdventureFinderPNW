@@ -4,43 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PNW Powder Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      min-height: 100vh;
-    }
-    header {
-      background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
-      padding: 1rem 2rem;
-      text-align: center;
-      border-bottom: 1px solid #0f3460;
-    }
-    h1 {
-      font-size: 1.8rem;
-      color: #87ceeb;
-      margin-bottom: 0.25rem;
-    }
-    .subtitle {
-      color: #94a3b8;
-      font-size: 0.9rem;
-    }
-    .header-links {
-      display: flex;
-      justify-content: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    .back-link {
-      display: inline-block;
-      margin-top: 0.6rem;
-      color: #ffd700;
-      text-decoration: none;
-      font-size: 0.85rem;
-    }
-    .back-link:hover { text-decoration: underline; }
+    /* Page-specific: powder header links + resort cards */
+    .back-link { color: var(--color-sun); font-weight: 400; margin-top: 0.6rem; }
+
     main {
       max-width: 960px;
       margin: 2rem auto;
@@ -52,38 +23,22 @@
       gap: 1.25rem;
     }
     .resort-card {
-      background: rgba(22, 33, 62, 0.95);
-      border: 1px solid #0f3460;
+      background: color-mix(in srgb, var(--surface) 95%, transparent);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.25rem;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
     }
-    .resort-header {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    .resort-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #87ceeb;
-    }
-    .resort-elevation {
-      font-size: 0.78rem;
-      color: #64748b;
-      margin-top: 0.1rem;
-    }
-    .days-row {
-      display: flex;
-      gap: 0.35rem;
-      flex-wrap: wrap;
-    }
+    .resort-header { display: flex; align-items: center; gap: 0.6rem; }
+    .resort-name { font-size: 1.1rem; font-weight: 700; color: var(--accent-strong); }
+    .resort-elevation { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.1rem; }
+    .days-row { display: flex; gap: 0.35rem; flex-wrap: wrap; }
     .day-cell {
       flex: 1;
       min-width: 48px;
-      background: rgba(15, 52, 96, 0.4);
+      background: color-mix(in srgb, var(--border) 40%, transparent);
       border-radius: 8px;
       padding: 0.5rem 0.3rem;
       text-align: center;
@@ -93,71 +48,45 @@
       gap: 0.15rem;
     }
     .day-cell.snowy {
-      background: rgba(135, 206, 235, 0.12);
-      border: 1px solid rgba(135, 206, 235, 0.35);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
     }
     .day-label {
       font-size: 0.68rem;
-      color: #94a3b8;
+      color: var(--text-muted);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
-    .day-emoji {
-      font-size: 1.3rem;
-      line-height: 1;
-    }
-    .day-snow {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: #87ceeb;
-    }
-    .day-snow.none {
-      color: #475569;
-    }
-    .day-temp {
-      font-size: 0.68rem;
-      color: #94a3b8;
-    }
+    .day-emoji { font-size: 1.3rem; line-height: 1; }
+    .day-snow { font-size: 0.72rem; font-weight: 700; color: var(--accent-strong); }
+    .day-snow.none { color: #475569; }
+    .day-temp { font-size: 0.68rem; color: var(--text-muted); }
     .total-snow {
       font-size: 0.82rem;
-      color: #cbd5e1;
-      border-top: 1px solid #0f3460;
+      color: var(--color-soft);
+      border-top: 1px solid var(--border);
       padding-top: 0.6rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .total-snow strong {
-      color: #87ceeb;
-      font-size: 1rem;
-    }
+    .total-snow strong { color: var(--accent-strong); font-size: 1rem; }
     .loading-card {
-      color: #94a3b8;
+      color: var(--text-muted);
       font-size: 0.85rem;
       text-align: center;
       padding: 1rem 0;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      animation: pulse-soft 1.5s ease-in-out infinite;
     }
     .error-msg {
-      color: #f87171;
+      color: var(--color-danger);
       font-size: 0.82rem;
       text-align: center;
       padding: 0.5rem 0;
     }
-    footer {
-      background: #16213e;
-      padding: 0.75rem;
-      text-align: center;
-      font-size: 0.8rem;
-      color: #64748b;
-      border-top: 1px solid #0f3460;
-      margin-top: 2rem;
-    }
+    footer { margin-top: 2rem; }
+
     @media (max-width: 640px) {
       header { padding: 0.6rem 1rem; }
       h1 { font-size: 1.3rem; }
@@ -166,7 +95,7 @@
     }
   </style>
 </head>
-<body>
+<body data-theme="powder">
   <header>
     <h1>❄️ PNW Powder Finder</h1>
     <p class="subtitle">7-day snow forecast for PNW ski resorts</p>
@@ -184,7 +113,7 @@
   </main>
 
   <footer>
-    Data from <a href="https://open-meteo.com/" style="color:#87ceeb">Open-Meteo API</a> ·
+    Data from <a href="https://open-meteo.com/">Open-Meteo API</a> ·
     Updated: <span id="lastUpdated">-</span>
   </footer>
 

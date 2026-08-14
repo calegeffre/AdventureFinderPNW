@@ -1,0 +1,289 @@
+/* ============================================================================
+   AdventureFinder PNW — Design System
+   Aesthetic: national-park poster — warm earthy tones, retro/topographic vibe.
+   Tailwind v4 (CSS-first). Source of truth for tokens + shared components.
+   Build:  npm run build:css   (outputs dist/adventurefinder.css)
+   ==========================================================================*/
+
+@import "tailwindcss";
+
+/* Scan the static pages so utility classes used in markup get generated. */
+@source "../*.html";
+
+/* ----------------------------------------------------------------------------
+   1. Design tokens  (@theme → generates utilities AND :root CSS variables)
+   --------------------------------------------------------------------------*/
+@theme {
+  /* Typography — condensed poster display + clean humanist body */
+  --font-display: 'Oswald', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Segoe UI', system-ui, sans-serif;
+
+  /* Warm "paper" neutrals (shared canvas for every adventure) */
+  --color-sand: #efe6d1;       /* page background            */
+  --color-cream: #fbf7ee;      /* cards / surfaces / header   */
+  --color-parchment: #e7dcc2;  /* footer band / deeper fill   */
+  --color-clay: #e3d5b7;       /* raised cells                */
+  --color-bark: #d3c09a;       /* borders                     */
+  --color-umber: #2c2820;      /* primary ink (warm near-black)*/
+  --color-driftwood: #6a5e49;  /* muted text                  */
+  --color-stone: #90815f;      /* dim text / footer           */
+  --color-soft: #5c5240;       /* secondary text              */
+
+  /* Adventure accents — each has a fill + a darker "ink" for text on paper */
+  --color-sun: #d98324;        --color-sun-ink: #9a5716;   /* rust-gold  */
+  --color-powder: #5f8aa3;     --color-powder-ink: #35607a;/* glacier    */
+  --color-waves: #1f6f78;      --color-waves-ink: #155e66; /* lake teal  */
+
+  /* Status / signal (warm-leaning, still green / amber / red) */
+  --color-success: #4c8a3f;
+  --color-warn: #d9a521;
+  --color-alert: #c0492e;
+  --color-danger: #c0492e;
+
+  /* Motion — utility tokens (keyframes defined as plain CSS below so they
+     are always emitted, not tree-shaken when no animate-* class is used) */
+  --animate-bob: bob 1.2s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 1.5s ease-in-out infinite;
+}
+
+/* Keyframes — kept outside @theme so the compiler always includes them. */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ----------------------------------------------------------------------------
+   2. Semantic theme variables
+      Every adventure shares the same paper canvas; only the signature accent
+      changes. Defaults below == the "sun" theme.
+   --------------------------------------------------------------------------*/
+:root {
+  --bg: var(--color-sand);
+  --surface: var(--color-cream);
+  --border: var(--color-bark);
+  --accent: var(--color-sun);
+  --accent-strong: var(--color-sun-ink);   /* accent for text on paper */
+  --accent-ink: var(--color-cream);         /* text on accent fills     */
+  --text: var(--color-umber);
+  --text-muted: var(--color-driftwood);
+  --text-dim: var(--color-stone);
+  --footer-text: var(--color-stone);
+  --panel-bg: var(--color-cream);
+  --shadow-card: 0 6px 18px rgba(60, 45, 20, 0.10);
+  --spinner-anim: spin 1s linear infinite;
+}
+
+[data-theme="sun"] {
+  --accent: var(--color-sun);
+  --accent-strong: var(--color-sun-ink);
+}
+
+[data-theme="powder"] {
+  --accent: var(--color-powder);
+  --accent-strong: var(--color-powder-ink);
+}
+
+[data-theme="waves"] {
+  --accent: var(--color-waves);
+  --accent-strong: var(--color-waves-ink);
+  --spinner-anim: bob 1.2s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------------------------
+   3. Base layer  (element defaults shared by every page)
+   --------------------------------------------------------------------------*/
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Poster header: cream field, bold accent rule across the top */
+  header {
+    background: var(--surface);
+    padding: 1.25rem 2rem;
+    text-align: center;
+    border-top: 6px solid var(--accent);
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    font-size: 1.9rem;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+
+  footer {
+    background: var(--color-parchment);
+    padding: 0.85rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--footer-text);
+    border-top: 1px solid var(--border);
+  }
+
+  footer a { color: var(--accent-strong); text-decoration: none; font-weight: 600; }
+  footer a:hover { text-decoration: underline; }
+}
+
+/* ----------------------------------------------------------------------------
+   4. Component layer  (shared, previously-duplicated building blocks)
+      Class names match existing markup/JS so pages need no structural changes.
+   --------------------------------------------------------------------------*/
+@layer components {
+  /* --- Text helpers ------------------------------------------------------ */
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .subtitle a { color: var(--accent-strong); text-decoration: none; font-weight: 600; }
+  .subtitle a:hover { text-decoration: underline; }
+
+  /* --- Header links ------------------------------------------------------ */
+  .header-links {
+    display: flex;
+    justify-content: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+  }
+  .header-link,
+  .back-link {
+    display: inline-block;
+    color: var(--accent-strong);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .header-link:hover,
+  .back-link:hover { text-decoration: underline; }
+  .header-link.secondary { color: var(--text-muted); }
+
+  /* --- Day tabs (poster-style pills, uppercase) -------------------------- */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 0.55rem 1.1rem;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+  }
+  .tab:hover {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-color: var(--accent);
+    color: var(--accent-strong);
+  }
+  .tab.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* --- Poster card / panel (legend / map-panel / top3-panel / best-panel) */
+  .panel,
+  .legend,
+  .map-panel,
+  .top3-panel,
+  .best-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem;
+    box-shadow: var(--shadow-card);
+  }
+  .map-panel {
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(60, 45, 20, 0.18);
+  }
+  .panel h4,
+  .legend h4,
+  .map-panel h4,
+  .top3-panel h4,
+  .best-panel h4 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-strong);
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  /* --- Collapsible panel behaviour --------------------------------------- */
+  .panel-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-toggle {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+    display: inline-block;
+    transition: transform 0.2s;
+    line-height: 1;
+  }
+  .panel-collapsed .panel-toggle { transform: rotate(-90deg); }
+  .panel-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease, margin-top 0.25s ease;
+    max-height: 800px;
+    margin-top: 0.75rem;
+  }
+  .panel-collapsed .panel-body { max-height: 0; margin-top: 0; }
+
+  /* --- Loading overlay + spinner ----------------------------------------- */
+  .loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: var(--panel-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    box-shadow: var(--shadow-card);
+  }
+  .loading.hidden { display: none; }
+  .spinner {
+    font-size: 2rem;
+    display: inline-block;
+    animation: var(--spinner-anim);
+  }
+}

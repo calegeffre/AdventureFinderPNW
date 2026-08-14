@@ -6,70 +6,14 @@
   <title>PNW Sunshine Finder</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-    }
-    header {
-      background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
-      padding: 1rem 2rem;
-      text-align: center;
-      border-bottom: 1px solid #0f3460;
-    }
-    h1 { 
-      font-size: 1.8rem; 
-      color: #ffd700;
-      margin-bottom: 0.25rem;
-    }
-    .subtitle { 
-      color: #94a3b8; 
-      font-size: 0.9rem; 
-    }
-    .tabs {
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      flex-wrap: wrap;
-    }
-    .tab {
-      padding: 0.6rem 1.2rem;
-      background: transparent;
-      border: 1px solid #0f3460;
-      color: #94a3b8;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
-    .tab:hover {
-      background: rgba(255, 215, 0, 0.1);
-      border-color: #ffd700;
-      color: #ffd700;
-    }
-    .tab.active {
-      background: #ffd700;
-      color: #1a1a2e;
-      border-color: #ffd700;
-      font-weight: 600;
-    }
-    #map {
-      height: calc(100vh - 180px);
-      width: 100%;
-    }
-    .legend {
-      background: rgba(26, 26, 46, 0.95);
-      border: 1px solid #0f3460;
-      border-radius: 8px;
-      padding: 1rem;
-      margin: 0.5rem;
-    }
-    .legend h4 {
-      color: #ffd700;
-    }
+    /* Page-specific: sunshine map, legend, top-3 panel + AQI indicators */
+    #map { height: calc(100vh - 180px); width: 100%; }
+
     .legend-item {
       display: flex;
       align-items: center;
@@ -77,105 +21,49 @@
       margin: 0.25rem 0;
       font-size: 0.85rem;
     }
-    .legend-emoji {
-      font-size: 1.2rem;
-    }
+    .legend-emoji { font-size: 1.2rem; }
+    .legend .panel-body { margin-top: 0.5rem; }
     .legend-toggle {
       margin-top: 0.45rem;
       padding-top: 0.45rem;
-      border-top: 1px solid rgba(15, 52, 96, 0.4);
+      border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
     }
     .legend-toggle label {
       display: flex;
       align-items: center;
       gap: 0.45rem;
       font-size: 0.85rem;
-      color: #cbd5e1;
+      color: var(--color-soft);
       cursor: pointer;
     }
-    .legend-toggle input {
-      accent-color: #ffd700;
-      cursor: pointer;
+    .legend-toggle input { accent-color: var(--accent); cursor: pointer; }
+
+    /* Leaflet popups render on a fixed light bubble, so they stay un-themed */
+    .city-popup { text-align: center; }
+    .city-popup h3 { margin-bottom: 0.5rem; color: #1a1a2e; }
+    .city-popup .weather-emoji { font-size: 2rem; }
+    .city-popup .conditions { font-size: 0.9rem; color: #666; }
+    .city-popup .temp { font-weight: bold; color: #333; }
+
+    .top3-panel { min-width: 200px; max-width: 250px; }
+    .top3-panel .panel-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
     }
-    footer {
-      background: #16213e;
-      padding: 0.75rem;
-      text-align: center;
-      font-size: 0.8rem;
-      color: #64748b;
-      border-top: 1px solid #0f3460;
-    }
-    .loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 1000;
-      background: rgba(26, 26, 46, 0.95);
-      padding: 2rem;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .loading.hidden { display: none; }
-    .spinner {
-      font-size: 2rem;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    .city-popup {
-      text-align: center;
-    }
-    .city-popup h3 {
-      margin-bottom: 0.5rem;
-      color: #1a1a2e;
-    }
-    .city-popup .weather-emoji {
-      font-size: 2rem;
-    }
-    .city-popup .conditions {
-      font-size: 0.9rem;
-      color: #666;
-    }
-    .city-popup .temp {
-      font-weight: bold;
-      color: #333;
-    }
-    .top3-panel {
-      background: rgba(26, 26, 46, 0.95);
-      border: 1px solid #0f3460;
-      border-radius: 8px;
-      padding: 1rem;
-      margin: 0.5rem;
-      min-width: 200px;
-      max-width: 250px;
-    }
-    .top3-panel h4 {
-      color: #ffd700;
-      font-size: 0.95rem;
+    .top3-panel.panel-collapsed .panel-header {
+      border-bottom: none;
+      padding-bottom: 0;
     }
     .top3-item {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(15, 52, 96, 0.4);
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
     }
-    .top3-item:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-    .top3-rank {
-      font-size: 1.2rem;
-      min-width: 26px;
-      text-align: center;
-    }
-    .top3-emoji {
-      font-size: 1.2rem;
-      min-width: 24px;
-      text-align: center;
-    }
+    .top3-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .top3-rank { font-size: 1.2rem; min-width: 26px; text-align: center; }
+    .top3-emoji { font-size: 1.2rem; min-width: 24px; text-align: center; }
     .top3-aqi {
       font-size: 0.75rem;
       font-weight: 700;
@@ -185,10 +73,7 @@
       text-align: center;
       border: 1px solid rgba(148, 163, 184, 0.5);
     }
-    .top3-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .top3-info { flex: 1; min-width: 0; }
     .top3-city {
       font-weight: 600;
       font-size: 0.88rem;
@@ -196,33 +81,23 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .top3-dist {
-      font-size: 0.75rem;
-      color: #94a3b8;
-      margin-top: 0.1rem;
-    }
+    .top3-dist { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
     .top3-sun {
       font-size: 0.72rem;
-      color: #facc15;
+      color: var(--accent-strong);
       margin-top: 0.08rem;
       font-weight: 600;
     }
     .top3-none {
-      color: #94a3b8;
+      color: var(--text-muted);
       font-size: 0.85rem;
       text-align: center;
       padding: 0.5rem 0;
     }
-    .marker-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      white-space: nowrap;
-    }
-    .marker-emoji {
-      font-size: 2rem;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
+
+    /* Map markers + AQI pills (rendered over the map) */
+    .marker-wrap { display: flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
+    .marker-emoji { font-size: 2rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); }
     .marker-aqi {
       font-size: 0.75rem;
       font-weight: 700;
@@ -242,114 +117,33 @@
       border: 1px solid rgba(148, 163, 184, 0.5);
       vertical-align: middle;
     }
-    .aqi-good {
-      background: #22c55e;
-      color: #052e16;
-      border-color: #86efac;
-    }
-    .aqi-moderate {
-      background: #facc15;
-      color: #3f2f00;
-      border-color: #fde68a;
-    }
-    .aqi-usg {
-      background: #fb923c;
-      color: #431407;
-      border-color: #fdba74;
-    }
-    .aqi-unhealthy {
-      background: #ef4444;
-      color: #fff1f2;
-      border-color: #fca5a5;
-    }
-    .aqi-very-unhealthy {
-      background: #a855f7;
-      color: #f5f3ff;
-      border-color: #d8b4fe;
-    }
-    .aqi-hazardous {
-      background: #7f1d1d;
-      color: #fff1f2;
-      border-color: #fda4af;
-    }
+    .aqi-good { background: #22c55e; color: #052e16; border-color: #86efac; }
+    .aqi-moderate { background: #facc15; color: #3f2f00; border-color: #fde68a; }
+    .aqi-usg { background: #fb923c; color: #431407; border-color: #fdba74; }
+    .aqi-unhealthy { background: #ef4444; color: #fff1f2; border-color: #fca5a5; }
+    .aqi-very-unhealthy { background: #a855f7; color: #f5f3ff; border-color: #d8b4fe; }
+    .aqi-hazardous { background: #7f1d1d; color: #fff1f2; border-color: #fda4af; }
     .aqi-unknown {
       background: rgba(15, 23, 42, 0.85);
       color: #f8fafc;
       border-color: rgba(148, 163, 184, 0.5);
     }
-    /* Collapsible panel styles */
-    .panel-header {
-      cursor: pointer;
-      user-select: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .top3-panel .panel-header {
-      border-bottom: 1px solid #0f3460;
-      padding-bottom: 0.5rem;
-    }
-    .top3-panel.panel-collapsed .panel-header {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-    .panel-toggle {
-      font-size: 0.7rem;
-      color: #94a3b8;
-      margin-left: 0.5rem;
-      display: inline-block;
-      transition: transform 0.2s;
-      line-height: 1;
-    }
-    .panel-collapsed .panel-toggle {
-      transform: rotate(-90deg);
-    }
-    .panel-body {
-      overflow: hidden;
-      transition: max-height 0.25s ease, margin-top 0.25s ease;
-      max-height: 600px;
-      margin-top: 0.75rem;
-    }
-    .legend .panel-body {
-      margin-top: 0.5rem;
-    }
-    .panel-collapsed .panel-body {
-      max-height: 0;
-      margin-top: 0;
-    }
-    /* Mobile optimizations */
+
     @media (max-width: 640px) {
-      header {
-        padding: 0.6rem 1rem;
-      }
-      h1 {
-        font-size: 1.3rem;
-      }
-      .subtitle {
-        font-size: 0.8rem;
-      }
-      .tabs {
-        margin-top: 0.5rem;
-        gap: 0.3rem;
-      }
-      .tab {
-        padding: 0.4rem 0.75rem;
-        font-size: 0.8rem;
-      }
-      #map {
-        height: calc(100vh - 130px);
-      }
-      .top3-panel,
-      .legend {
-        padding: 0.6rem;
-      }
+      header { padding: 0.6rem 1rem; }
+      h1 { font-size: 1.3rem; }
+      .subtitle { font-size: 0.8rem; }
+      .tabs { margin-top: 0.5rem; gap: 0.3rem; }
+      .tab { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+      #map { height: calc(100vh - 130px); }
+      .top3-panel, .legend { padding: 0.6rem; }
     }
   </style>
 </head>
-<body>
+<body data-theme="sun">
   <header>
     <h1>☀️ PNW Sunshine Finder</h1>
-    <p class="subtitle">Real-time sun tracker across the Pacific Northwest · <a href="powder.html" style="color:#87ceeb; text-decoration:none; font-weight:600;">❄️ Find the Snow</a> · <a href="waves.html" style="color:#67e8f9; text-decoration:none; font-weight:600;">🏄 Find the Waves</a></p>
+    <p class="subtitle">Real-time sun tracker across the Pacific Northwest · <a href="powder.html" style="color:var(--color-powder-ink); text-decoration:none; font-weight:600;">❄️ Find the Snow</a> · <a href="waves.html" style="color:var(--color-waves-ink); text-decoration:none; font-weight:600;">🏄 Find the Waves</a></p>
     <div class="tabs">
       <button class="tab active" data-day="0">Today</button>
       <button class="tab" data-day="1">Tomorrow</button>
@@ -366,7 +160,7 @@
   </div>
   
   <footer>
-    Data from <a href="https://open-meteo.com/" style="color:#ffd700">Open-Meteo API</a> and <a href="https://eonet.gsfc.nasa.gov/" style="color:#ffd700">NASA EONET</a> •
+    Data from <a href="https://open-meteo.com/">Open-Meteo API</a> and <a href="https://eonet.gsfc.nasa.gov/">NASA EONET</a> •
     Updated: <span id="lastUpdated">-</span>
   </footer>
 
@@ -684,7 +478,7 @@
     // Initialize map centered on PNW
     const map = L.map('map').setView([47.5, -121.5], 7);
     
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 19

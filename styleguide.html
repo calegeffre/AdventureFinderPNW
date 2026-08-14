@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AdventureFinder PNW — Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="dist/adventurefinder.css" />
+  <style>
+    /* Guide-only layout helpers */
+    main { max-width: 960px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    section { margin-top: 2.5rem; }
+    .sg-title {
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent-strong);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.4rem;
+      margin-bottom: 1rem;
+    }
+    .sg-swatch { height: 3.5rem; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.14); }
+    .sg-name { font-size: 0.78rem; margin-top: 0.35rem; color: var(--text); font-weight: 600; }
+    .sg-var { font-size: 0.72rem; color: var(--text-muted); }
+    .sg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      color: var(--accent-strong);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    pre {
+      background: var(--color-parchment);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow: auto;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .sg-theme-card { border: 1px solid var(--border); border-radius: 10px; padding: 1rem; box-shadow: var(--shadow-card); background: var(--surface); }
+  </style>
+</head>
+<body data-theme="sun">
+  <header>
+    <h1>🧭 AdventureFinder PNW — Design System</h1>
+    <p class="subtitle">
+      National-park poster tokens &amp; components powering the Sunshine, Powder, and Wave finders ·
+      Built with <a href="https://tailwindcss.com/">Tailwind CSS</a>
+    </p>
+  </header>
+
+  <main>
+    <!-- THEMES ------------------------------------------------------------ -->
+    <section>
+      <div class="sg-title">Themes</div>
+      <p class="subtitle" style="margin-bottom: 1rem;">
+        Every adventure shares one warm paper canvas. Each page sets
+        <code>data-theme</code> on <code>&lt;body&gt;</code> to swap only its signature
+        accent — the top rule, labels, links, and active tabs all re-color automatically.
+      </p>
+      <div class="sg-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+        <div class="sg-theme-card" data-theme="sun">
+          <div class="sg-swatch" style="background: var(--accent);"></div>
+          <div class="sg-name">☀️ sun</div>
+          <div class="sg-var">rust-gold · #d98324</div>
+          <div class="tabs" style="margin-top: 0.75rem;">
+            <button class="tab active">Today</button>
+            <button class="tab">Tomorrow</button>
+          </div>
+        </div>
+        <div class="sg-theme-card" data-theme="powder">
+          <div class="sg-swatch" style="background: var(--accent);"></div>
+          <div class="sg-name">❄️ powder</div>
+          <div class="sg-var">glacier · #5f8aa3</div>
+          <div class="tabs" style="margin-top: 0.75rem;">
+            <button class="tab active">Today</button>
+            <button class="tab">Tomorrow</button>
+          </div>
+        </div>
+        <div class="sg-theme-card" data-theme="waves">
+          <div class="sg-swatch" style="background: var(--accent);"></div>
+          <div class="sg-name">🏄 waves</div>
+          <div class="sg-var">lake teal · #1f6f78</div>
+          <div class="tabs" style="margin-top: 0.75rem;">
+            <button class="tab active">Today</button>
+            <button class="tab">Tomorrow</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACCENT COLORS ----------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Adventure accents</div>
+      <div class="sg-grid">
+        <div><div class="sg-swatch bg-sun"></div><div class="sg-name">Sun</div><div class="sg-var">bg-sun</div></div>
+        <div><div class="sg-swatch bg-sun-ink"></div><div class="sg-name">Sun ink</div><div class="sg-var">bg-sun-ink</div></div>
+        <div><div class="sg-swatch bg-powder"></div><div class="sg-name">Powder</div><div class="sg-var">bg-powder</div></div>
+        <div><div class="sg-swatch bg-powder-ink"></div><div class="sg-name">Powder ink</div><div class="sg-var">bg-powder-ink</div></div>
+        <div><div class="sg-swatch bg-waves"></div><div class="sg-name">Waves</div><div class="sg-var">bg-waves</div></div>
+        <div><div class="sg-swatch bg-waves-ink"></div><div class="sg-name">Waves ink</div><div class="sg-var">bg-waves-ink</div></div>
+      </div>
+      <p class="subtitle" style="margin-top: 0.75rem;">
+        Each accent ships with a darker <code>-ink</code> variant for legible colored text on paper.
+      </p>
+    </section>
+
+    <!-- PAPER NEUTRALS ---------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Paper &amp; structure</div>
+      <div class="sg-grid">
+        <div><div class="sg-swatch bg-sand"></div><div class="sg-name">Sand</div><div class="sg-var">bg-sand · page</div></div>
+        <div><div class="sg-swatch bg-cream"></div><div class="sg-name">Cream</div><div class="sg-var">bg-cream · cards</div></div>
+        <div><div class="sg-swatch bg-parchment"></div><div class="sg-name">Parchment</div><div class="sg-var">bg-parchment</div></div>
+        <div><div class="sg-swatch bg-clay"></div><div class="sg-name">Clay</div><div class="sg-var">bg-clay · cells</div></div>
+        <div><div class="sg-swatch bg-bark"></div><div class="sg-name">Bark</div><div class="sg-var">bg-bark · borders</div></div>
+      </div>
+    </section>
+
+    <!-- STATUS COLORS ----------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Status &amp; signal</div>
+      <div class="sg-grid">
+        <div><div class="sg-swatch bg-success"></div><div class="sg-name">Success</div><div class="sg-var">bg-success</div></div>
+        <div><div class="sg-swatch bg-warn"></div><div class="sg-name">Warn</div><div class="sg-var">bg-warn</div></div>
+        <div><div class="sg-swatch bg-alert"></div><div class="sg-name">Alert</div><div class="sg-var">bg-alert</div></div>
+        <div><div class="sg-swatch bg-danger"></div><div class="sg-name">Danger</div><div class="sg-var">bg-danger</div></div>
+      </div>
+    </section>
+
+    <!-- TYPOGRAPHY -------------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Typography</div>
+      <div class="panel">
+        <h1 style="font-size: 1.8rem;">Display heading · Oswald</h1>
+        <p class="subtitle">Subtitle · .subtitle uses <code>--text-muted</code></p>
+        <p style="margin-top: 0.75rem; color: var(--text);">Body text · <code>--font-sans</code> on <code>--text</code></p>
+        <p class="text-soft" style="margin-top: 0.25rem;">Secondary · text-soft</p>
+        <p class="text-muted" style="margin-top: 0.25rem;">Muted · text-muted</p>
+        <p class="text-dim" style="margin-top: 0.25rem;">Dim · text-dim</p>
+        <p style="margin-top: 0.5rem;">
+          Headings use <code>--font-display</code> (Oswald, uppercase); body uses <code>--font-sans</code>.
+        </p>
+      </div>
+    </section>
+
+    <!-- COMPONENTS: TABS -------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Component · Tabs</div>
+      <div class="tabs" style="justify-content: flex-start;">
+        <button class="tab active" data-day="0">Today</button>
+        <button class="tab" data-day="1">Tomorrow</button>
+        <button class="tab">Saturday</button>
+        <button class="tab">Sunday</button>
+      </div>
+      <pre style="margin-top: 1rem;">&lt;div class="tabs"&gt;
+  &lt;button class="tab active"&gt;Today&lt;/button&gt;
+  &lt;button class="tab"&gt;Tomorrow&lt;/button&gt;
+&lt;/div&gt;</pre>
+    </section>
+
+    <!-- COMPONENTS: PANEL ------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Component · Panel + collapsible</div>
+      <div class="sg-grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+        <div class="panel">
+          <div class="panel-header">
+            <h4>Legend</h4>
+            <span class="panel-toggle">▼</span>
+          </div>
+          <div class="panel-body">
+            <p class="subtitle" style="margin-top: 0;">A cream poster card using <code>.panel</code> +
+              a <code>--font-display</code> label.</p>
+          </div>
+        </div>
+        <div class="map-panel">
+          <h4>Map panel</h4>
+          <p class="subtitle" style="margin-top: 0.5rem;">
+            <code>.map-panel</code> adds a deeper shadow + softer radius.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENTS: LOADING ----------------------------------------------- -->
+    <section>
+      <div class="sg-title">Component · Loading</div>
+      <div class="panel" style="position: relative; height: 8rem;">
+        <div class="loading" style="position: absolute;">
+          <div class="spinner">☀️</div>
+          <p class="subtitle" style="margin-top: 0.5rem;">Loading…</p>
+        </div>
+      </div>
+      <p class="subtitle" style="margin-top: 0.75rem;">
+        Spinner animation is theme-driven via <code>--spinner-anim</code>
+        (spin for sun/powder, bob for waves).
+      </p>
+    </section>
+
+    <!-- USAGE ------------------------------------------------------------- -->
+    <section>
+      <div class="sg-title">Using the system</div>
+      <pre>&lt;!-- 1. Load the display font + compiled stylesheet --&gt;
+&lt;link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&amp;display=swap" rel="stylesheet"&gt;
+&lt;link rel="stylesheet" href="dist/adventurefinder.css" /&gt;
+
+&lt;!-- 2. Pick a theme on the body --&gt;
+&lt;body data-theme="waves"&gt;
+
+  &lt;!-- 3. Use component classes + token utilities --&gt;
+  &lt;div class="panel"&gt;
+    &lt;h4&gt;Nearest swell&lt;/h4&gt;
+    &lt;span class="text-muted"&gt;3.2 ft @ 12s&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/body&gt;</pre>
+      <p class="subtitle" style="margin-top: 1rem;">
+        Edit tokens in <code>src/app.css</code>, then rebuild with
+        <code>npm run build:css</code> (or <code>npm run watch:css</code> while developing).
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    AdventureFinder PNW Design System · tokens in <code>src/app.css</code>
+  </footer>
+</body>
+</html>

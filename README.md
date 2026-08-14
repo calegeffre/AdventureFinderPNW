@@ -14,6 +14,25 @@
 - 🎯 Ranks the nearest sunny cities and surfaces the **Top 3 Closest Sunny Spots** panel
 - 🔄 Auto-refreshes every 15 minutes so the data stays current
 
+## Design system
+
+The site's styling is driven by a small **Tailwind CSS v4** design system with a **national-park poster** aesthetic — warm "paper" tones, bold condensed [Oswald](https://fonts.google.com/specimen/Oswald) headings, and retro flat cards — so the three pages (Sunshine, Powder, Waves) stay visually consistent from a single source of truth.
+
+- **Tokens** live in [`src/app.css`](src/app.css) as Tailwind `@theme` variables — colors, typography, and motion.
+- **Per-page theming**: all pages share one paper canvas; set `data-theme="sun" | "powder" | "waves"` on `<body>` to swap the signature accent (rust-gold / glacier / lake-teal). The top rule, labels, links, and active tabs re-color automatically.
+- **Components** (tabs, frosted panels, collapsible bodies, loading spinner, header/footer) are defined once in the `@layer components` block and reused across pages.
+- **Living reference**: open [`styleguide.html`](styleguide.html) in a browser to browse the tokens and components.
+
+### Building the CSS
+
+The compiled stylesheet is committed at `dist/adventurefinder.css`. Rebuild it after editing tokens or components:
+
+```bash
+npm install          # first time only
+npm run build:css    # one-off minified build
+npm run watch:css    # rebuild on change while developing
+```
+
 ## Open source libraries
 
 SunshineFinder is built on top of these great open source projects:
@@ -23,6 +42,7 @@ SunshineFinder is built on top of these great open source projects:
 | [Leaflet](https://leafletjs.com/) | 1.9.4 | Interactive map rendering and city markers |
 | [Open-Meteo API](https://open-meteo.com/) | — | Free, no-auth weather forecast data (WMO weather codes, temperature) |
 | [CARTO](https://carto.com/) / [OpenStreetMap](https://www.openstreetmap.org/) | — | Dark basemap tiles displayed inside the Leaflet map |
+| [Tailwind CSS](https://tailwindcss.com/) | ^4.3 | Design-system tokens + compiled stylesheet (`dist/adventurefinder.css`) |
 | [Playwright](https://playwright.dev/) | ^1.58.2 | Headless browser automation used to generate the screenshot above |
 
 ## Generating screenshots with Playwright

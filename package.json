@@ -4,6 +4,8 @@
   "description": "Need a little sun?",
   "main": "index.js",
   "scripts": {
+    "build:css": "tailwindcss -i ./src/app.css -o ./dist/adventurefinder.css --minify",
+    "watch:css": "tailwindcss -i ./src/app.css -o ./dist/adventurefinder.css --watch",
     "screenshot": "node test/screenshot.js",
     "test:expanded": "node test/expanded-search.js"
   },
@@ -21,5 +23,9 @@
   "homepage": "https://github.com/calegeffre/SunshineFinder#readme",
   "dependencies": {
     "playwright": "^1.58.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
   }
 }
