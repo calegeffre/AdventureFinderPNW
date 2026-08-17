@@ -6,9 +6,10 @@
   <title>PNW Sunshine Finder</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap">
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Page-specific: sunshine map, legend, top-3 panel + AQI indicators */
@@ -21,7 +22,7 @@
       margin: 0.25rem 0;
       font-size: 0.85rem;
     }
-    .legend-emoji { font-size: 1.2rem; }
+    .legend-icon { width: 1.15rem; height: 1.15rem; color: var(--accent-strong); }
     .legend .panel-body { margin-top: 0.5rem; }
     .legend-toggle {
       margin-top: 0.45rem;
@@ -41,7 +42,7 @@
     /* Leaflet popups render on a fixed light bubble, so they stay un-themed */
     .city-popup { text-align: center; }
     .city-popup h3 { margin-bottom: 0.5rem; color: #1a1a2e; }
-    .city-popup .weather-emoji { font-size: 2rem; }
+    .city-popup .weather-icon { width: 2.2rem; height: 2.2rem; color: var(--accent-strong); }
     .city-popup .conditions { font-size: 0.9rem; color: #666; }
     .city-popup .temp { font-weight: bold; color: #333; }
 
@@ -63,7 +64,11 @@
     }
     .top3-item:last-child { border-bottom: none; padding-bottom: 0; }
     .top3-rank { font-size: 1.2rem; min-width: 26px; text-align: center; }
-    .top3-emoji { font-size: 1.2rem; min-width: 24px; text-align: center; }
+    .top3-icon { width: 1.3rem; height: 1.3rem; min-width: 24px; color: var(--accent-strong); }
+    .top3-medal { width: 1.25rem; height: 1.25rem; min-width: 26px; }
+    .medal-1 { color: #c8912b; }
+    .medal-2 { color: #9aa3ad; }
+    .medal-3 { color: #a9713f; }
     .top3-aqi {
       font-size: 0.75rem;
       font-weight: 700;
@@ -97,7 +102,9 @@
 
     /* Map markers + AQI pills (rendered over the map) */
     .marker-wrap { display: flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
-    .marker-emoji { font-size: 2rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); }
+    .marker-icon { width: 2rem; height: 2rem; color: var(--color-umber); filter: drop-shadow(0 1px 2px rgba(255,255,255,0.7)); }
+    .marker-sunny { color: var(--color-sun-ink); filter: drop-shadow(0 0 6px var(--color-sun)); }
+    .marker-fire { color: var(--color-alert); width: 1.8rem; height: 1.8rem; }
     .marker-aqi {
       font-size: 0.75rem;
       font-weight: 700;
@@ -142,8 +149,8 @@
 </head>
 <body data-theme="sun">
   <header>
-    <h1>☀️ PNW Sunshine Finder</h1>
-    <p class="subtitle">Real-time sun tracker across the Pacific Northwest · <a href="powder.html" style="color:var(--color-powder-ink); text-decoration:none; font-weight:600;">❄️ Find the Snow</a> · <a href="waves.html" style="color:var(--color-waves-ink); text-decoration:none; font-weight:600;">🏄 Find the Waves</a></p>
+    <h1><i data-lucide="sun" class="icon-title"></i> PNW Sunshine Finder</h1>
+    <p class="subtitle">Real-time sun tracker across the Pacific Northwest · <a href="powder.html" style="color:var(--color-powder-ink); text-decoration:none; font-weight:600;"><i data-lucide="cloud-snow" class="icon"></i> Find the Snow</a> · <a href="waves.html" style="color:var(--color-waves-ink); text-decoration:none; font-weight:600;"><i data-lucide="waves" class="icon"></i> Find the Waves</a></p>
     <div class="tabs">
       <button class="tab active" data-day="0">Today</button>
       <button class="tab" data-day="1">Tomorrow</button>
@@ -155,7 +162,7 @@
   <div id="map"></div>
   
   <div class="loading" id="loading">
-    <div class="spinner">☀️</div>
+    <div class="spinner"><i data-lucide="sun"></i></div>
     <p>Checking the skies...</p>
   </div>
   
@@ -203,36 +210,36 @@
 
     // Weather codes - sunny/clear conditions
     const weatherCodes = {
-      0: { desc: 'Clear Sky', emoji: '☀️', sunny: true },
-      1: { desc: 'Mainly Clear', emoji: '🌤️', sunny: true },
-      2: { desc: 'Partly Cloudy', emoji: '⛅', sunny: false },
-      3: { desc: 'Overcast', emoji: '☁️', sunny: false },
-      45: { desc: 'Foggy', emoji: '🌫️', sunny: false },
-      48: { desc: 'Depositing Fog', emoji: '🌫️', sunny: false },
-      51: { desc: 'Light Drizzle', emoji: '🌦️', sunny: false },
-      53: { desc: 'Drizzle', emoji: '🌧️', sunny: false },
-      55: { desc: 'Dense Drizzle', emoji: '🌧️', sunny: false },
-      61: { desc: 'Light Rain', emoji: '🌧️', sunny: false },
-      63: { desc: 'Rain', emoji: '🌧️', sunny: false },
-      65: { desc: 'Heavy Rain', emoji: '🌧️', sunny: false },
-      66: { desc: 'Freezing Rain', emoji: '🌨️', sunny: false },
-      67: { desc: 'Heavy Freezing Rain', emoji: '🌨️', sunny: false },
-      71: { desc: 'Light Snow', emoji: '🌨️', sunny: false },
-      73: { desc: 'Snow', emoji: '❄️', sunny: false },
-      75: { desc: 'Heavy Snow', emoji: '❄️', sunny: false },
-      77: { desc: 'Snow Grains', emoji: '❄️', sunny: false },
-      80: { desc: 'Rain Showers', emoji: '🌦️', sunny: false },
-      81: { desc: 'Moderate Showers', emoji: '🌧️', sunny: false },
-      82: { desc: 'Heavy Showers', emoji: '🌧️', sunny: false },
-      85: { desc: 'Snow Showers', emoji: '🌨️', sunny: false },
-      86: { desc: 'Heavy Snow Showers', emoji: '🌨️', sunny: false },
-      95: { desc: 'Thunderstorm', emoji: '⛈️', sunny: false },
-      96: { desc: 'Thunderstorm w/ Hail', emoji: '⛈️', sunny: false },
-      99: { desc: 'Thunderstorm w/ Heavy Hail', emoji: '⛈️', sunny: false },
+      0: { desc: 'Clear Sky', sunny: true , icon: 'sun' },
+      1: { desc: 'Mainly Clear', sunny: true , icon: 'cloud-sun' },
+      2: { desc: 'Partly Cloudy', sunny: false , icon: 'cloud-sun' },
+      3: { desc: 'Overcast', sunny: false , icon: 'cloud' },
+      45: { desc: 'Foggy', sunny: false , icon: 'cloud-fog' },
+      48: { desc: 'Depositing Fog', sunny: false , icon: 'cloud-fog' },
+      51: { desc: 'Light Drizzle', sunny: false , icon: 'cloud-drizzle' },
+      53: { desc: 'Drizzle', sunny: false , icon: 'cloud-drizzle' },
+      55: { desc: 'Dense Drizzle', sunny: false , icon: 'cloud-drizzle' },
+      61: { desc: 'Light Rain', sunny: false , icon: 'cloud-rain' },
+      63: { desc: 'Rain', sunny: false , icon: 'cloud-rain' },
+      65: { desc: 'Heavy Rain', sunny: false , icon: 'cloud-rain' },
+      66: { desc: 'Freezing Rain', sunny: false , icon: 'cloud-snow' },
+      67: { desc: 'Heavy Freezing Rain', sunny: false , icon: 'cloud-snow' },
+      71: { desc: 'Light Snow', sunny: false , icon: 'cloud-snow' },
+      73: { desc: 'Snow', sunny: false , icon: 'cloud-snow' },
+      75: { desc: 'Heavy Snow', sunny: false , icon: 'cloud-snow' },
+      77: { desc: 'Snow Grains', sunny: false , icon: 'snowflake' },
+      80: { desc: 'Rain Showers', sunny: false , icon: 'cloud-rain' },
+      81: { desc: 'Moderate Showers', sunny: false , icon: 'cloud-rain' },
+      82: { desc: 'Heavy Showers', sunny: false , icon: 'cloud-rain' },
+      85: { desc: 'Snow Showers', sunny: false , icon: 'cloud-snow' },
+      86: { desc: 'Heavy Snow Showers', sunny: false , icon: 'cloud-snow' },
+      95: { desc: 'Thunderstorm', sunny: false , icon: 'cloud-lightning' },
+      96: { desc: 'Thunderstorm w/ Hail', sunny: false , icon: 'cloud-lightning' },
+      99: { desc: 'Thunderstorm w/ Heavy Hail', sunny: false , icon: 'cloud-lightning' },
     };
 
     // Fallback weather descriptor for unrecognised WMO codes
-    const UNKNOWN_WEATHER = { desc: 'Unknown', emoji: '❓', sunny: false };
+    const UNKNOWN_WEATHER = { desc: 'Unknown', sunny: false, icon: 'circle-help' };
     const SEATTLE_LAT = 47.6062;
     const SEATTLE_LON = -122.3321;
 
@@ -484,6 +491,9 @@
       maxZoom: 19
     }).addTo(map);
 
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+    map.on('popupopen', refreshIcons);
+
     // Add legend
     const legend = L.control({ position: 'topright' });
     legend.onAdd = function() {
@@ -491,16 +501,16 @@
       const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
       div.innerHTML = `
         <div class="panel-header">
-          <h4>Weather</h4><span class="panel-toggle">▼</span>
+          <h4>Weather</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="panel-body">
-          <div class="legend-item"><span class="legend-emoji">☀️</span> Clear/Sunny</div>
-          <div class="legend-item"><span class="legend-emoji">🌤️</span> Mainly Clear</div>
-          <div class="legend-item"><span class="legend-emoji">⛅</span> Partly Cloudy</div>
-          <div class="legend-item"><span class="legend-emoji">☁️</span> Cloudy</div>
-          <div class="legend-item"><span class="legend-emoji">🌧️</span> Rain</div>
-          <div class="legend-item"><span class="legend-emoji">❄️</span> Snow</div>
-          <div class="legend-item"><span class="legend-emoji">🔥</span> Active Fire</div>
+          <div class="legend-item"><i data-lucide="sun" class="legend-icon"></i> Clear/Sunny</div>
+          <div class="legend-item"><i data-lucide="cloud-sun" class="legend-icon"></i> Mainly Clear</div>
+          <div class="legend-item"><i data-lucide="cloud-sun" class="legend-icon"></i> Partly Cloudy</div>
+          <div class="legend-item"><i data-lucide="cloud" class="legend-icon"></i> Cloudy</div>
+          <div class="legend-item"><i data-lucide="cloud-rain" class="legend-icon"></i> Rain</div>
+          <div class="legend-item"><i data-lucide="cloud-snow" class="legend-icon"></i> Snow</div>
+          <div class="legend-item"><i data-lucide="flame" class="legend-icon"></i> Active Fire</div>
           <div class="legend-toggle">
             <label><input type="checkbox" id="toggleFires"> Show fires</label>
           </div>
@@ -524,7 +534,7 @@
       const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
       div.innerHTML = `
         <div class="panel-header">
-          <h4>🏆 3 Closest Sunny Spots</h4><span class="panel-toggle">▼</span>
+          <h4><i data-lucide="trophy" class="icon"></i> 3 Closest Sunny Spots</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="panel-body">
           <div id="top3Content"><div class="top3-none">Loading...</div></div>
@@ -637,11 +647,11 @@
       top3.sort((a, b) => a.distance - b.distance);
 
       if (top3.length === 0) {
-        panel.innerHTML = '<div class="top3-none">No sunny spots found 😔</div>';
+        panel.innerHTML = '<div class="top3-none">No sunny spots found <i data-lucide="cloud-off" class="icon"></i></div>';
         return;
       }
 
-      const medals = ['🥇', '🥈', '🥉'];
+      const medals = ['<i data-lucide="medal" class="top3-medal medal-1"></i>', '<i data-lucide="medal" class="top3-medal medal-2"></i>', '<i data-lucide="medal" class="top3-medal medal-3"></i>'];
       panel.innerHTML = top3.map((city, i) => {
         const weather = weatherCodes[city.weatherCode] || UNKNOWN_WEATHER;
         const aqiMeta = getAqiCategory(city.aqi);
@@ -652,7 +662,7 @@
         return `
           <div class="top3-item">
             <span class="top3-rank">${medals[i]}</span>
-            <span class="top3-emoji">${weather.emoji}</span>
+            <i data-lucide="${weather.icon}" class="top3-icon"></i>
             ${aqiDisplay}
             <div class="top3-info">
               <div class="top3-city">${city.name}</div>
@@ -662,16 +672,17 @@
           </div>
         `;
       }).join('');
+      refreshIcons();
     }
 
     // Create custom emoji marker
-    function createEmojiIcon(emoji, isSunny, aqi) {
+    function createEmojiIcon(iconName, isSunny, aqi) {
       const aqiMeta = getAqiCategory(aqi);
       const aqiMarkup = aqi !== null
         ? `<span class="marker-aqi ${aqiMeta.className}" title="AQI ${aqi} (${aqiMeta.label})">${aqi}</span>`
         : '';
       return L.divIcon({
-        html: `<div class="marker-wrap"><span class="marker-emoji" style="filter: ${isSunny ? 'drop-shadow(0 0 8px gold)' : 'none'};">${emoji}</span>${aqiMarkup}</div>`,
+        html: `<div class="marker-wrap"><i data-lucide="${iconName}" class="marker-icon${isSunny ? ' marker-sunny' : ''}"></i>${aqiMarkup}</div>`,
         className: 'emoji-marker',
         iconSize: [74, 40],
         iconAnchor: [20, 20],
@@ -681,7 +692,7 @@
 
     function createFireIcon() {
       return L.divIcon({
-        html: `<div class="marker-emoji">🔥</div>`,
+        html: `<i data-lucide="flame" class="marker-icon marker-fire"></i>`,
         className: 'fire-marker',
         iconSize: [30, 30],
         iconAnchor: [15, 15],
@@ -704,12 +715,13 @@
         marker.bindPopup(`
           <div class="city-popup">
             <h3>${fire.title}</h3>
-            <div class="conditions">🔥 Active wildfire</div>
+            <div class="conditions"><i data-lucide="flame" class="icon"></i> Active wildfire</div>
             <div class="temp">Updated: ${updatedAt}</div>
           </div>
         `);
         fireMarkers.push(marker);
       });
+      refreshIcons();
     }
 
     function isInFireSearchBounds(lat, lon) {
@@ -818,7 +830,7 @@
     function getWeatherForDay(cityData, dayIndex) {
       if (!cityData.dailyData || cityData.dailyData.weather_code[dayIndex] === undefined) {
         return {
-          weather: { desc: 'Unavailable', emoji: '❓', sunny: false },
+          weather: { desc: 'Unavailable', sunny: false, icon: 'circle-help' },
           highTemp: '--',
           lowTemp: '--',
           isSunny: false
@@ -853,7 +865,7 @@
       allCityData.forEach(cityData => {
         const dayWeather = getWeatherForDay(cityData, dayIndex);
         const aqiValue = getAqiForDay(cityData, dayIndex);
-        const icon = createEmojiIcon(dayWeather.weather.emoji, dayWeather.isSunny, showAqi ? aqiValue : null);
+        const icon = createEmojiIcon(dayWeather.weather.icon, dayWeather.isSunny, showAqi ? aqiValue : null);
         const marker = L.marker([cityData.lat, cityData.lon], { icon }).addTo(map);
         
         const tempDisplay = isToday 
@@ -867,17 +879,18 @@
         marker.bindPopup(`
           <div class="city-popup">
             <h3>${cityData.name}</h3>
-            <div class="weather-emoji">${dayWeather.weather.emoji}</div>
+            <i data-lucide="${dayWeather.weather.icon}" class="weather-icon"></i>
             <div class="conditions">${dayWeather.weather.desc}</div>
             ${aqiDisplay}
             <div class="temp">${tempDisplay}</div>
-            ${dayWeather.isSunny ? '<p style="color: gold; font-weight: bold; margin-top: 0.5rem;">☀️ Sunny!</p>' : ''}
+            ${dayWeather.isSunny ? '<p style="color: var(--color-sun-ink); font-weight: bold; margin-top: 0.5rem;"><i data-lucide=\'sun\' class="icon"></i> Sunny!</p>' : ''}
           </div>
         `);
         
         markers.push(marker);
       });
       
+      refreshIcons();
       // Log sunny cities
       const sunnyCities = allCityData.filter(c => getWeatherForDay(c, dayIndex).isSunny);
       console.log(`Sunny cities for day ${dayIndex}:`, sunnyCities.map(c => c.name).join(', ') || 'None');
@@ -960,6 +973,7 @@
     }
 
     // Initialize
+    if (window.lucide) lucide.createIcons();  // upgrade static header/spinner icons
     updateTabLabels();
     updateAllWeather();
     

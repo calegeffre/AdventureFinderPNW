@@ -6,7 +6,8 @@
   <title>PNW Powder Finder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap">
+  <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Page-specific: powder header links + resort cards */
@@ -58,7 +59,7 @@
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
-    .day-emoji { font-size: 1.3rem; line-height: 1; }
+    .day-icon { width: 1.4rem; height: 1.4rem; color: var(--accent-strong); }
     .day-snow { font-size: 0.72rem; font-weight: 700; color: var(--accent-strong); }
     .day-snow.none { color: #475569; }
     .day-temp { font-size: 0.68rem; color: var(--text-muted); }
@@ -97,12 +98,12 @@
 </head>
 <body data-theme="powder">
   <header>
-    <h1>❄️ PNW Powder Finder</h1>
+    <h1><i data-lucide="cloud-snow" class="icon-title"></i> PNW Powder Finder</h1>
     <p class="subtitle">7-day snow forecast for PNW ski resorts</p>
     <div class="header-links">
       <a href="https://nwac.us/" class="back-link" target="_blank" rel="noreferrer">NWAC Avalanche Forecast</a>
-      <a href="waves.html" class="back-link">🏄 Find the Waves</a>
-      <a href="index.html" class="back-link">☀️ Back to Sunshine Finder</a>
+      <a href="waves.html" class="back-link"><i data-lucide="waves" class="icon"></i> Find the Waves</a>
+      <a href="index.html" class="back-link"><i data-lucide="sun" class="icon"></i> Back to Sunshine Finder</a>
     </div>
   </header>
 
@@ -129,32 +130,32 @@
       { name: 'Mt. Bachelor',       location: 'Bend, OR', lat: 43.9792, lon: -121.6886, elevation: '9,065 ft summit', distFromSeattle: '330 mi' },
     ];
 
-    // WMO weather code → emoji/description
+    // WMO weather code → Lucide icon/description
     const weatherIcons = {
-      0:  { emoji: '☀️',  desc: 'Clear' },
-      1:  { emoji: '🌤️', desc: 'Mainly Clear' },
-      2:  { emoji: '⛅',  desc: 'Partly Cloudy' },
-      3:  { emoji: '☁️',  desc: 'Overcast' },
-      45: { emoji: '🌫️', desc: 'Fog' },
-      48: { emoji: '🌫️', desc: 'Icy Fog' },
-      51: { emoji: '🌦️', desc: 'Light Drizzle' },
-      53: { emoji: '🌦️', desc: 'Drizzle' },
-      55: { emoji: '🌧️', desc: 'Heavy Drizzle' },
-      61: { emoji: '🌧️', desc: 'Light Rain' },
-      63: { emoji: '🌧️', desc: 'Rain' },
-      65: { emoji: '🌧️', desc: 'Heavy Rain' },
-      71: { emoji: '❄️',  desc: 'Light Snow' },
-      73: { emoji: '❄️',  desc: 'Snow' },
-      75: { emoji: '❄️',  desc: 'Heavy Snow' },
-      77: { emoji: '🌨️', desc: 'Snow Grains' },
-      80: { emoji: '🌦️', desc: 'Rain Showers' },
-      81: { emoji: '🌧️', desc: 'Rain Showers' },
-      82: { emoji: '⛈️',  desc: 'Heavy Rain' },
-      85: { emoji: '🌨️', desc: 'Snow Showers' },
-      86: { emoji: '🌨️', desc: 'Heavy Snow Showers' },
-      95: { emoji: '⛈️',  desc: 'Thunderstorm' },
-      96: { emoji: '⛈️',  desc: 'Thunderstorm + Hail' },
-      99: { emoji: '⛈️',  desc: 'Thunderstorm + Hail' },
+      0:  { desc: 'Clear', icon: 'sun' },
+      1:  { desc: 'Mainly Clear', icon: 'cloud-sun' },
+      2:  { desc: 'Partly Cloudy', icon: 'cloud-sun' },
+      3:  { desc: 'Overcast', icon: 'cloud' },
+      45: { desc: 'Fog', icon: 'cloud-fog' },
+      48: { desc: 'Icy Fog', icon: 'cloud-fog' },
+      51: { desc: 'Light Drizzle', icon: 'cloud-drizzle' },
+      53: { desc: 'Drizzle', icon: 'cloud-drizzle' },
+      55: { desc: 'Heavy Drizzle', icon: 'cloud-rain' },
+      61: { desc: 'Light Rain', icon: 'cloud-rain' },
+      63: { desc: 'Rain', icon: 'cloud-rain' },
+      65: { desc: 'Heavy Rain', icon: 'cloud-rain' },
+      71: { desc: 'Light Snow', icon: 'cloud-snow' },
+      73: { desc: 'Snow', icon: 'cloud-snow' },
+      75: { desc: 'Heavy Snow', icon: 'cloud-snow' },
+      77: { desc: 'Snow Grains', icon: 'cloud-snow' },
+      80: { desc: 'Rain Showers', icon: 'cloud-drizzle' },
+      81: { desc: 'Rain Showers', icon: 'cloud-rain' },
+      82: { desc: 'Heavy Rain', icon: 'cloud-lightning' },
+      85: { desc: 'Snow Showers', icon: 'cloud-snow' },
+      86: { desc: 'Heavy Snow Showers', icon: 'cloud-snow' },
+      95: { desc: 'Thunderstorm', icon: 'cloud-lightning' },
+      96: { desc: 'Thunderstorm + Hail', icon: 'cloud-lightning' },
+      99: { desc: 'Thunderstorm + Hail', icon: 'cloud-lightning' },
     };
 
     function cmToInches(cm) {
@@ -191,8 +192,8 @@
       card.innerHTML = `
         <div class="resort-header">
           <div>
-            <div class="resort-name">⛷️ ${resort.name}</div>
-            <div class="resort-elevation">${resort.location} · ${resort.elevation} · 🚗 ${resort.distFromSeattle} from Seattle</div>
+            <div class="resort-name"><i data-lucide="mountain-snow" class="icon"></i> ${resort.name}</div>
+            <div class="resort-elevation">${resort.location} · ${resort.elevation} · <i data-lucide="car" class="icon"></i> ${resort.distFromSeattle} from Seattle</div>
           </div>
         </div>
         <div class="loading-card">Loading forecast…</div>
@@ -211,7 +212,7 @@
         const snowIn = cmToInches(snowCm);
         totalSnowIn += snowIn;
         const snowLabel = formatSnow(snowIn);
-        const icon = weatherIcons[code] || { emoji: '❓', desc: 'Unknown' };
+        const icon = weatherIcons[code] || { desc: 'Unknown', icon: 'circle-help' };
         const hi = Math.round(daily.temperature_2m_max[i]);
         const lo = Math.round(daily.temperature_2m_min[i]);
         const isSnowy = snowIn >= 0.1;
@@ -219,7 +220,7 @@
         return `
           <div class="day-cell${isSnowy ? ' snowy' : ''}">
             <div class="day-label">${shortDayLabel(dateStr, i)}</div>
-            <div class="day-emoji">${icon.emoji}</div>
+            <i data-lucide="${icon.icon}" class="day-icon"></i>
             <div class="day-snow${snowLabel ? '' : ' none'}">${snowLabel || '—'}</div>
             <div class="day-temp">${hi}°/${lo}°</div>
           </div>
@@ -233,14 +234,17 @@
       card.innerHTML = `
         <div class="resort-header">
           <div>
-            <div class="resort-name">⛷️ ${resort.name}</div>
-            <div class="resort-elevation">${resort.location} · ${resort.elevation} · 🚗 ${resort.distFromSeattle} from Seattle</div>
+            <div class="resort-name"><i data-lucide="mountain-snow" class="icon"></i> ${resort.name}</div>
+            <div class="resort-elevation">${resort.location} · ${resort.elevation} · <i data-lucide="car" class="icon"></i> ${resort.distFromSeattle} from Seattle</div>
           </div>
         </div>
         <div class="days-row">${cells}</div>
-        <div class="total-snow">❄️ 7-day total: ${totalLabel}</div>
+        <div class="total-snow"><i data-lucide="cloud-snow" class="icon"></i> 7-day total: ${totalLabel}</div>
       `;
+      refreshIcons();
     }
+
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
 
     async function loadResort(resort, card) {
       try {
@@ -268,6 +272,7 @@
       document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
     }
 
+    if (window.lucide) lucide.createIcons();
     init();
   </script>
 </body>

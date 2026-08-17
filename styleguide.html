@@ -6,7 +6,8 @@
   <title>AdventureFinder PNW — Design System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap">
+  <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Guide-only layout helpers */
@@ -50,7 +51,7 @@
 </head>
 <body data-theme="sun">
   <header>
-    <h1>🧭 AdventureFinder PNW — Design System</h1>
+    <h1><i data-lucide="compass" class="icon-title"></i> AdventureFinder PNW — Design System</h1>
     <p class="subtitle">
       National-park poster tokens &amp; components powering the Sunshine, Powder, and Wave finders ·
       Built with <a href="https://tailwindcss.com/">Tailwind CSS</a>
@@ -69,8 +70,8 @@
       <div class="sg-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
         <div class="sg-theme-card" data-theme="sun">
           <div class="sg-swatch" style="background: var(--accent);"></div>
-          <div class="sg-name">☀️ sun</div>
-          <div class="sg-var">rust-gold · #d98324</div>
+          <div class="sg-name"><i data-lucide="sun" class="icon"></i> sun</div>
+          <div class="sg-var">golden amber · #efb82f</div>
           <div class="tabs" style="margin-top: 0.75rem;">
             <button class="tab active">Today</button>
             <button class="tab">Tomorrow</button>
@@ -78,8 +79,8 @@
         </div>
         <div class="sg-theme-card" data-theme="powder">
           <div class="sg-swatch" style="background: var(--accent);"></div>
-          <div class="sg-name">❄️ powder</div>
-          <div class="sg-var">glacier · #5f8aa3</div>
+          <div class="sg-name"><i data-lucide="cloud-snow" class="icon"></i> powder</div>
+          <div class="sg-var">dusty blue · #839bb9</div>
           <div class="tabs" style="margin-top: 0.75rem;">
             <button class="tab active">Today</button>
             <button class="tab">Tomorrow</button>
@@ -87,8 +88,8 @@
         </div>
         <div class="sg-theme-card" data-theme="waves">
           <div class="sg-swatch" style="background: var(--accent);"></div>
-          <div class="sg-name">🏄 waves</div>
-          <div class="sg-var">lake teal · #1f6f78</div>
+          <div class="sg-name"><i data-lucide="waves" class="icon"></i> waves</div>
+          <div class="sg-var">deep steel · #426773</div>
           <div class="tabs" style="margin-top: 0.75rem;">
             <button class="tab active">Today</button>
             <button class="tab">Tomorrow</button>
@@ -140,14 +141,14 @@
     <section>
       <div class="sg-title">Typography</div>
       <div class="panel">
-        <h1 style="font-size: 1.8rem;">Display heading · Oswald</h1>
+        <h1 style="font-size: 1.8rem;">Display heading · Lora</h1>
         <p class="subtitle">Subtitle · .subtitle uses <code>--text-muted</code></p>
         <p style="margin-top: 0.75rem; color: var(--text);">Body text · <code>--font-sans</code> on <code>--text</code></p>
         <p class="text-soft" style="margin-top: 0.25rem;">Secondary · text-soft</p>
         <p class="text-muted" style="margin-top: 0.25rem;">Muted · text-muted</p>
         <p class="text-dim" style="margin-top: 0.25rem;">Dim · text-dim</p>
         <p style="margin-top: 0.5rem;">
-          Headings use <code>--font-display</code> (Oswald, uppercase); body uses <code>--font-sans</code>.
+          Headings use <code>--font-display</code> (Lora, uppercase); body uses <code>--font-sans</code>.
         </p>
       </div>
     </section>
@@ -174,7 +175,7 @@
         <div class="panel">
           <div class="panel-header">
             <h4>Legend</h4>
-            <span class="panel-toggle">▼</span>
+            <span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
           </div>
           <div class="panel-body">
             <p class="subtitle" style="margin-top: 0;">A cream poster card using <code>.panel</code> +
@@ -195,7 +196,7 @@
       <div class="sg-title">Component · Loading</div>
       <div class="panel" style="position: relative; height: 8rem;">
         <div class="loading" style="position: absolute;">
-          <div class="spinner">☀️</div>
+          <div class="spinner"><i data-lucide="sun"></i></div>
           <p class="subtitle" style="margin-top: 0.5rem;">Loading…</p>
         </div>
       </div>
@@ -205,11 +206,29 @@
       </p>
     </section>
 
+    <!-- COMPONENTS: ICONS ----------------------------------------------- -->
+    <section>
+      <div class="sg-title">Component · Icons (Lucide)</div>
+      <p class="subtitle" style="margin-bottom: 1rem;">
+        Line icons from <a href="https://lucide.dev/">Lucide</a>. They stroke with
+        <code>currentColor</code>, so they inherit the palette. Use
+        <code>&lt;i data-lucide="name" class="icon"&gt;&lt;/i&gt;</code> and call
+        <code>lucide.createIcons()</code> after render.
+      </p>
+      <div style="display:flex; flex-wrap:wrap; gap:1.25rem; font-size:1.6rem; color:var(--accent-strong);">
+        <i data-lucide="sun"></i><i data-lucide="cloud-sun"></i><i data-lucide="cloud"></i>
+        <i data-lucide="cloud-rain"></i><i data-lucide="cloud-snow"></i><i data-lucide="snowflake"></i>
+        <i data-lucide="cloud-lightning"></i><i data-lucide="wind"></i><i data-lucide="waves"></i>
+        <i data-lucide="mountain-snow"></i><i data-lucide="flame"></i><i data-lucide="compass"></i>
+        <i data-lucide="trophy"></i><i data-lucide="medal"></i><i data-lucide="chevron-down"></i>
+      </div>
+    </section>
+
     <!-- USAGE ------------------------------------------------------------- -->
     <section>
       <div class="sg-title">Using the system</div>
       <pre>&lt;!-- 1. Load the display font + compiled stylesheet --&gt;
-&lt;link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&amp;display=swap" rel="stylesheet"&gt;
+&lt;link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&amp;display=swap" rel="stylesheet"&gt;
 &lt;link rel="stylesheet" href="dist/adventurefinder.css" /&gt;
 
 &lt;!-- 2. Pick a theme on the body --&gt;
@@ -231,5 +250,6 @@
   <footer>
     AdventureFinder PNW Design System · tokens in <code>src/app.css</code>
   </footer>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

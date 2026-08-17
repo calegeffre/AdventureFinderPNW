@@ -6,9 +6,10 @@
   <title>PNW Wave Finder</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap">
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Page-specific: wave map, swell legend, best-spot panel + markers */
@@ -52,7 +53,7 @@
     }
     .best-name { font-size: 1rem; font-weight: 700; color: var(--text); }
     .best-region { margin-top: 0.2rem; font-size: 0.78rem; color: var(--text-muted); }
-    .best-badge { font-size: 1.6rem; line-height: 1; }
+    .best-badge-icon { width: 1.7rem; height: 1.7rem; color: var(--accent-strong); }
     .best-metrics {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -101,7 +102,7 @@
     /* Leaflet popups + markers render on the map, so they stay un-themed */
     .surf-popup { text-align: center; min-width: 210px; }
     .surf-popup h3 { margin-bottom: 0.4rem; color: #082032; }
-    .surf-popup .wave-emoji { font-size: 2rem; line-height: 1; }
+    .surf-popup .wave-icon { width: 2.1rem; height: 2.1rem; color: var(--accent-strong); }
     .surf-popup .conditions { color: #475569; font-size: 0.88rem; margin-top: 0.25rem; }
     .surf-popup .stats { font-weight: 700; color: #0f172a; margin-top: 0.45rem; line-height: 1.5; }
     .surf-popup .quality-chip {
@@ -150,6 +151,11 @@
       box-shadow: 0 0 0 2px rgba(103, 232, 249, 0.3), 0 10px 24px rgba(0, 0, 0, 0.4);
     }
     .surf-marker-height { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+    .surf-icon { width: 1.15rem; height: 1.15rem; }
+    .quality-dot { width: 0.8em; height: 0.8em; fill: currentColor; stroke: none; vertical-align: -0.06em; }
+    .quality-dot.quality-green { color: #4c8a3f; }
+    .quality-dot.quality-yellow { color: #d9a521; }
+    .quality-dot.quality-red { color: #c0492e; }
 
     @media (max-width: 640px) {
       header { padding: 0.7rem 1rem; }
@@ -166,11 +172,11 @@
 </head>
 <body data-theme="waves">
   <header>
-    <h1>🏄 PNW Wave Finder</h1>
+    <h1><i data-lucide="waves" class="icon-title"></i> PNW Wave Finder</h1>
     <p class="subtitle">
       Wave outlook across Washington, Oregon, and BC surf spots ·
-      <a href="powder.html">❄️ Find the Snow</a> ·
-      <a href="index.html">☀️ Sunshine Finder</a>
+      <a href="powder.html"><i data-lucide="cloud-snow" class="icon"></i> Find the Snow</a> ·
+      <a href="index.html"><i data-lucide="sun" class="icon"></i> Sunshine Finder</a>
     </p>
     <div class="header-links">
       <a href="https://open-meteo.com/en/docs/marine-weather-api" class="header-link" target="_blank" rel="noreferrer">Open-Meteo Marine</a>
@@ -187,7 +193,7 @@
   <div id="map"></div>
 
   <div class="loading" id="loading">
-    <div class="spinner">🌊</div>
+    <div class="spinner"><i data-lucide="waves"></i></div>
     <p>Checking the swell...</p>
   </div>
 
@@ -303,12 +309,12 @@
     function getWaveBand(value) {
       const feet = metersToFeet(value);
       if (!Number.isFinite(feet)) {
-        return { label: 'No data', emoji: '❓' };
+        return { label: 'No data', icon: 'circle-help' };
       }
-      if (feet >= 7) return { label: 'XL swell', emoji: '🌊' };
-      if (feet >= 5) return { label: 'Pumping', emoji: '🏄' };
-      if (feet >= 3) return { label: 'Fun surf', emoji: '🌊' };
-      return { label: 'Small', emoji: '🌤️' };
+      if (feet >= 7) return { label: 'XL swell', icon: 'waves' };
+      if (feet >= 5) return { label: 'Pumping', icon: 'waves' };
+      if (feet >= 3) return { label: 'Fun surf', icon: 'waves' };
+      return { label: 'Small', icon: 'wind' };
     }
 
     function getWaveQuality(heightValue, periodValue) {
@@ -316,18 +322,18 @@
       const wavePeriod = Number(periodValue);
 
       if (!Number.isFinite(waveFeet) || !Number.isFinite(wavePeriod)) {
-        return { label: 'Red', emoji: '🔴', markerClass: 'quality-red' };
+        return { label: 'Red', icon: 'circle', markerClass: 'quality-red' };
       }
 
       if (waveFeet >= 3 && waveFeet <= 7 && wavePeriod >= 10) {
-        return { label: 'Green', emoji: '🟢', markerClass: 'quality-green' };
+        return { label: 'Green', icon: 'circle', markerClass: 'quality-green' };
       }
 
       if (waveFeet >= 2 && waveFeet <= 9 && wavePeriod >= 8) {
-        return { label: 'Yellow', emoji: '🟡', markerClass: 'quality-yellow' };
+        return { label: 'Yellow', icon: 'circle', markerClass: 'quality-yellow' };
       }
 
-      return { label: 'Red', emoji: '🔴', markerClass: 'quality-red' };
+      return { label: 'Red', icon: 'circle', markerClass: 'quality-red' };
     }
 
     function formatNoaaTime(timestamp) {
@@ -348,7 +354,7 @@
       return L.divIcon({
         html: `
           <div class="surf-marker ${qualityClass}${isBest ? ' best' : ''}">
-            <span>${isBest ? '🏄' : band.emoji}</span>
+            <span><i data-lucide="${isBest ? 'waves' : band.icon}" class="surf-icon"></i></span>
             <span class="surf-marker-height">${formatWaveHeightShort(heightValue)}</span>
           </div>
         `,
@@ -479,13 +485,16 @@
       maxZoom: 19
     }).addTo(map);
 
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+    map.on('popupopen', refreshIcons);
+
     const legend = L.control({ position: 'topright' });
     legend.onAdd = function() {
       const div = L.DomUtil.create('div', 'map-panel');
       const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
       div.innerHTML = `
         <div class="panel-header">
-          <h4>Surf Guide</h4><span class="panel-toggle">▼</span>
+          <h4>Surf Guide</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="panel-body">
           <div class="legend-item"><span class="legend-pill legend-small">0-3 ft</span><span>Small / mellow</span></div>
@@ -514,7 +523,7 @@
       const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
       div.innerHTML = `
         <div class="panel-header">
-          <h4>🏄 Best Surf</h4><span class="panel-toggle">▼</span>
+          <h4><i data-lucide="waves" class="icon"></i> Best Surf</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="panel-body">
           <div id="bestSurfContent"><div class="panel-empty">Loading surf lineup...</div></div>
@@ -552,9 +561,9 @@
           <div class="best-head">
             <div>
               <div class="best-name">${best.spot.name}</div>
-              <div class="best-region">${best.spot.region} · ${best.summary.band.label} · ${best.summary.quality.emoji} ${best.summary.quality.label} quality</div>
+              <div class="best-region">${best.spot.region} · ${best.summary.band.label} · <i data-lucide="circle" class="quality-dot ${best.summary.quality.markerClass}"></i> ${best.summary.quality.label} quality</div>
             </div>
-            <div class="best-badge">${best.summary.band.emoji}</div>
+            <div class="best-badge"><i data-lucide="${best.summary.band.icon}" class="best-badge-icon"></i></div>
           </div>
           <div class="best-metrics">
             <div class="metric">
@@ -581,7 +590,7 @@
               ${runnersUp.map(({ spot, summary }) => `
                 <div class="runner-item">
                   <strong>${spot.name}</strong>
-                  <span>${formatWaveHeightShort(summary.waveHeight)} · ${summary.quality.emoji} ${summary.quality.label}</span>
+                  <span>${formatWaveHeightShort(summary.waveHeight)} · <i data-lucide="circle" class="quality-dot ${summary.quality.markerClass}"></i> ${summary.quality.label}</span>
                 </div>
               `).join('')}
             </div>
@@ -608,10 +617,10 @@
         marker.bindPopup(`
           <div class="surf-popup">
             <h3>${spot.name}</h3>
-            <div class="wave-emoji">${spot.name === bestSpotName ? '🏄' : summary.band.emoji}</div>
+            <i data-lucide="${spot.name === bestSpotName ? 'waves' : summary.band.icon}" class="wave-icon"></i>
             <div class="conditions">${spot.region} · ${spot.note}</div>
             <div class="stats">
-              <span class="quality-chip ${summary.quality.markerClass}">${summary.quality.emoji} ${summary.quality.label} quality</span><br>
+              <span class="quality-chip ${summary.quality.markerClass}">${summary.quality.label} quality</span><br>
               Wave max: ${formatWaveHeight(summary.waveHeight)}<br>
               Period: ${formatWavePeriod(summary.wavePeriod)}<br>
               Direction: ${formatWaveDirection(summary.waveDirection)}
@@ -629,6 +638,7 @@
       });
 
       updateBestSurfPanel(dayIndex);
+      refreshIcons();
     }
 
     async function updateAllSurf() {
@@ -690,6 +700,7 @@
       });
     });
 
+    if (window.lucide) lucide.createIcons();  // upgrade static header/spinner/control icons
     updateTabLabels();
     updateAllSurf();
     setInterval(updateAllSurf, 30 * 60 * 1000);

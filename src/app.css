@@ -14,8 +14,8 @@
    1. Design tokens  (@theme → generates utilities AND :root CSS variables)
    --------------------------------------------------------------------------*/
 @theme {
-  /* Typography — condensed poster display + clean humanist body */
-  --font-display: 'Oswald', 'Segoe UI', system-ui, sans-serif;
+  /* Typography — Lora serif display + clean humanist body */
+  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
   --font-sans: 'Segoe UI', system-ui, sans-serif;
 
   /* Warm "paper" neutrals (shared canvas for every adventure) */
@@ -24,21 +24,23 @@
   --color-parchment: #e7dcc2;  /* footer band / deeper fill   */
   --color-clay: #e3d5b7;       /* raised cells                */
   --color-bark: #d3c09a;       /* borders                     */
-  --color-umber: #2c2820;      /* primary ink (warm near-black)*/
+  --color-umber: #1f1e23;      /* primary ink (charcoal, from palette)*/
   --color-driftwood: #6a5e49;  /* muted text                  */
   --color-stone: #90815f;      /* dim text / footer           */
   --color-soft: #5c5240;       /* secondary text              */
 
-  /* Adventure accents — each has a fill + a darker "ink" for text on paper */
-  --color-sun: #d98324;        --color-sun-ink: #9a5716;   /* rust-gold  */
-  --color-powder: #5f8aa3;     --color-powder-ink: #35607a;/* glacier    */
-  --color-waves: #1f6f78;      --color-waves-ink: #155e66; /* lake teal  */
+  /* Adventure accents — Figma palette. Fill = light palette hue (dark text
+     sits on it); ink = darkened for legible colored text on the cream paper. */
+  --color-sun: #efb82f;        --color-sun-ink: #6c5a13;   /* golden amber */
+  --color-powder: #839bb9;     --color-powder-ink: #4f5d6f;/* dusty blue   */
+  --color-waves: #426773;      --color-waves-ink: #394c65; /* deep steel  */
 
-  /* Status / signal (warm-leaning, still green / amber / red) */
-  --color-success: #4c8a3f;
-  --color-warn: #d9a521;
-  --color-alert: #c0492e;
-  --color-danger: #c0492e;
+  /* Status / signal — mapped to the Figma palette (no native red/green,
+     so these read as palette tones, not conventional traffic-light colors) */
+  --color-success: #839bb9;    /* dusty blue   */
+  --color-warn: #fcd444;       /* bright yellow */
+  --color-alert: #efb82f;      /* amber        */
+  --color-danger: #6c5a13;     /* deep olive   */
 
   /* Motion — utility tokens (keyframes defined as plain CSS below so they
      are always emitted, not tree-shaken when no animate-* class is used) */
@@ -70,7 +72,7 @@
   --border: var(--color-bark);
   --accent: var(--color-sun);
   --accent-strong: var(--color-sun-ink);   /* accent for text on paper */
-  --accent-ink: var(--color-cream);         /* text on accent fills     */
+  --accent-ink: var(--color-umber);         /* dark text on accent fills */
   --text: var(--color-umber);
   --text-muted: var(--color-driftwood);
   --text-dim: var(--color-stone);
@@ -93,6 +95,7 @@
 [data-theme="waves"] {
   --accent: var(--color-waves);
   --accent-strong: var(--color-waves-ink);
+  --accent-ink: var(--color-cream);  /* waves fill is dark → light text */
   --spinner-anim: bob 1.2s ease-in-out infinite;
 }
 
@@ -286,4 +289,23 @@
     display: inline-block;
     animation: var(--spinner-anim);
   }
+
+  /* --- Lucide icons ------------------------------------------------------ */
+  /* Lucide SVGs stroke with currentColor, so icons inherit the palette.
+     The base sizing applies to any [data-lucide] placeholder and the <svg>
+     it upgrades into (Lucide copies the class onto the generated <svg>). */
+  .icon,
+  [data-lucide] {
+    width: 1.1em;
+    height: 1.1em;
+    display: inline-block;
+    vertical-align: -0.18em;
+    stroke-width: 2;
+    flex: none;
+  }
+  .icon-title { width: 1.5em; height: 1.5em; vertical-align: -0.28em; color: var(--accent-strong); }
+  .spinner [data-lucide],
+  .spinner svg { width: 2rem; height: 2rem; color: var(--accent-strong); vertical-align: middle; }
 }
+
+
