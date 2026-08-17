@@ -9,11 +9,23 @@
   <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Page-specific: wave map, swell legend, best-spot panel + markers */
-    #map { height: calc(100vh - 198px); width: 100%; }
+    /* HERO IMAGE — swap this URL to use your own photo */
+    .hero--waves {
+      background-image: url('images/waves-hero.jpg');
+    }
+    .map-toolbar {
+      display: flex;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .map-toolbar .tabs { margin-top: 0; }
+    #map { height: 82vh; min-height: 460px; width: 100%; }
 
     .legend-item {
       display: flex;
@@ -171,24 +183,34 @@
   </style>
 </head>
 <body data-theme="waves">
-  <header>
-    <h1><i data-lucide="waves" class="icon-title"></i> PNW Wave Finder</h1>
-    <p class="subtitle">
-      Wave outlook across Washington, Oregon, and BC surf spots ·
-      <a href="powder.html"><i data-lucide="cloud-snow" class="icon"></i> Find the Snow</a> ·
-      <a href="index.html"><i data-lucide="sun" class="icon"></i> Sunshine Finder</a>
-    </p>
-    <div class="header-links">
-      <a href="https://open-meteo.com/en/docs/marine-weather-api" class="header-link" target="_blank" rel="noreferrer">Open-Meteo Marine</a>
-      <a href="https://tidesandcurrents.noaa.gov/" class="header-link secondary" target="_blank" rel="noreferrer">NOAA Tides</a>
+  <section class="hero hero--banner hero--waves">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand"><i data-lucide="compass"></i> Adventure Finder</a>
+      <div class="nav-links">
+        <a href="sunshine.html" class="nav-hide"><i data-lucide="sun"></i> Sun</a>
+        <a href="powder.html" class="nav-hide"><i data-lucide="cloud-snow"></i> Snow</a>
+        <a href="index.html" class="btn btn-ghost">Home</a>
+      </div>
+    </nav>
+    <div class="hero-inner">
+      <div class="hero-kicker">Wave Finder</div>
+      <h1 class="hero-title">Find the Waves</h1>
+      <p class="hero-sub">Wave, swell, and tide outlook across Washington, Oregon, and BC surf spots.</p>
+      <div class="hero-actions">
+        <a href="https://open-meteo.com/en/docs/marine-weather-api" class="btn btn-ghost" target="_blank" rel="noreferrer"><i data-lucide="waves"></i> Open-Meteo Marine</a>
+        <a href="https://tidesandcurrents.noaa.gov/" class="btn btn-ghost" target="_blank" rel="noreferrer"><i data-lucide="anchor"></i> NOAA Tides</a>
+      </div>
     </div>
+  </section>
+
+  <div class="map-toolbar">
     <div class="tabs">
       <button class="tab active" data-day="0">Today</button>
       <button class="tab" data-day="1">Tomorrow</button>
       <button class="tab" data-day="sat" id="satTab">Saturday</button>
       <button class="tab" data-day="sun" id="sunTab">Sunday</button>
     </div>
-  </header>
+  </div>
 
   <div id="map"></div>
 

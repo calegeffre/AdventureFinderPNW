@@ -1,984 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PNW Sunshine Finder</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pacific Northwest Adventure Finder</title>
   <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
-    /* Page-specific: sunshine map, legend, top-3 panel + AQI indicators */
-    #map { height: calc(100vh - 180px); width: 100%; }
+    .hero--home {
+      background-image: url('images/home-hero.jpg');
+    }
 
-    .legend-item {
+    /* Activity cards */
+    .activity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2.5rem;
+    }
+    .activity-card {
       display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin: 0.25rem 0;
-      font-size: 0.85rem;
-    }
-    .legend-icon { width: 1.15rem; height: 1.15rem; color: var(--accent-strong); }
-    .legend .panel-body { margin-top: 0.5rem; }
-    .legend-toggle {
-      margin-top: 0.45rem;
-      padding-top: 0.45rem;
-      border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-    }
-    .legend-toggle label {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.85rem;
-      color: var(--color-soft);
-      cursor: pointer;
-    }
-    .legend-toggle input { accent-color: var(--accent); cursor: pointer; }
-
-    /* Leaflet popups render on a fixed light bubble, so they stay un-themed */
-    .city-popup { text-align: center; }
-    .city-popup h3 { margin-bottom: 0.5rem; color: #1a1a2e; }
-    .city-popup .weather-icon { width: 2.2rem; height: 2.2rem; color: var(--accent-strong); }
-    .city-popup .conditions { font-size: 0.9rem; color: #666; }
-    .city-popup .temp { font-weight: bold; color: #333; }
-
-    .top3-panel { min-width: 200px; max-width: 250px; }
-    .top3-panel .panel-header {
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.5rem;
-    }
-    .top3-panel.panel-collapsed .panel-header {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-    .top3-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
-    }
-    .top3-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .top3-rank { font-size: 1.2rem; min-width: 26px; text-align: center; }
-    .top3-icon { width: 1.3rem; height: 1.3rem; min-width: 24px; color: var(--accent-strong); }
-    .top3-medal { width: 1.25rem; height: 1.25rem; min-width: 26px; }
-    .medal-1 { color: #c8912b; }
-    .medal-2 { color: #9aa3ad; }
-    .medal-3 { color: #a9713f; }
-    .top3-aqi {
-      font-size: 0.75rem;
-      font-weight: 700;
-      border-radius: 999px;
-      padding: 0.1rem 0.38rem;
-      min-width: 34px;
-      text-align: center;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-    .top3-info { flex: 1; min-width: 0; }
-    .top3-city {
-      font-weight: 600;
-      font-size: 0.88rem;
-      white-space: nowrap;
+      flex-direction: column;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
       overflow: hidden;
-      text-overflow: ellipsis;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
-    .top3-dist { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
-    .top3-sun {
-      font-size: 0.72rem;
-      color: var(--accent-strong);
-      margin-top: 0.08rem;
+    .activity-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 18px 40px rgba(38, 55, 77, 0.16);
+    }
+    .activity-photo {
+      height: 160px;
+      background-size: cover;
+      background-position: center;
+    }
+    .activity-body { padding: 1.4rem 1.4rem 1.6rem; display: flex; flex-direction: column; flex: 1; }
+    .activity-icon { width: 2.2rem; height: 2.2rem; }
+    .activity-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
       font-weight: 600;
+      margin: 0.6rem 0 0.4rem;
+      color: var(--text);
     }
-    .top3-none {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      text-align: center;
-      padding: 0.5rem 0;
-    }
-
-    /* Map markers + AQI pills (rendered over the map) */
-    .marker-wrap { display: flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
-    .marker-icon { width: 2rem; height: 2rem; color: var(--color-umber); filter: drop-shadow(0 1px 2px rgba(255,255,255,0.7)); }
-    .marker-sunny { color: var(--color-sun-ink); filter: drop-shadow(0 0 6px var(--color-sun)); }
-    .marker-fire { color: var(--color-alert); width: 1.8rem; height: 1.8rem; }
-    .marker-aqi {
-      font-size: 0.75rem;
-      font-weight: 700;
-      border-radius: 999px;
-      padding: 0.1rem 0.38rem;
-      line-height: 1.2;
-      min-width: 30px;
-      text-align: center;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-    .popup-aqi {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 700;
-      border-radius: 999px;
-      padding: 0.05rem 0.4rem;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      vertical-align: middle;
-    }
-    .aqi-good { background: #22c55e; color: #052e16; border-color: #86efac; }
-    .aqi-moderate { background: #facc15; color: #3f2f00; border-color: #fde68a; }
-    .aqi-usg { background: #fb923c; color: #431407; border-color: #fdba74; }
-    .aqi-unhealthy { background: #ef4444; color: #fff1f2; border-color: #fca5a5; }
-    .aqi-very-unhealthy { background: #a855f7; color: #f5f3ff; border-color: #d8b4fe; }
-    .aqi-hazardous { background: #7f1d1d; color: #fff1f2; border-color: #fda4af; }
-    .aqi-unknown {
-      background: rgba(15, 23, 42, 0.85);
-      color: #f8fafc;
-      border-color: rgba(148, 163, 184, 0.5);
+    .activity-desc { color: var(--text-muted); font-size: 0.92rem; line-height: 1.55; flex: 1; }
+    .activity-cta {
+      margin-top: 1.1rem;
+      color: var(--accent-strong);
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
-    @media (max-width: 640px) {
-      header { padding: 0.6rem 1rem; }
-      h1 { font-size: 1.3rem; }
-      .subtitle { font-size: 0.8rem; }
-      .tabs { margin-top: 0.5rem; gap: 0.3rem; }
-      .tab { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
-      #map { height: calc(100vh - 130px); }
-      .top3-panel, .legend { padding: 0.6rem; }
+    /* Split feature row */
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: center;
+    }
+    .split-media {
+      border-radius: 18px;
+      min-height: 320px;
+      background-size: cover;
+      background-position: center;
+      box-shadow: var(--shadow-card);
+    }
+    .split-body .section-kicker,
+    .split-body .section-title,
+    .split-body .lead { text-align: left; margin-left: 0; }
+    .split-steps { margin-top: 1.4rem; display: grid; gap: 1rem; }
+    .split-step { display: flex; gap: 0.85rem; align-items: flex-start; }
+    .split-step .step-icon {
+      flex: none; width: 2.4rem; height: 2.4rem; border-radius: 12px;
+      background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+      display: grid; place-items: center;
+    }
+    .split-step .step-icon [data-lucide] { width: 1.2rem; height: 1.2rem; color: var(--accent-strong); }
+    .split-step h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.15rem; }
+    .split-step p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+
+    @media (max-width: 760px) {
+      .split { grid-template-columns: 1fr; gap: 1.5rem; }
+      .split-media { min-height: 220px; }
+      .nav-links { gap: 1rem; }
+    }
+    @media (max-width: 520px) {
+      .nav-links .nav-hide { display: none; }
     }
   </style>
 </head>
-<body data-theme="sun">
-  <header>
-    <h1><i data-lucide="sun" class="icon-title"></i> PNW Sunshine Finder</h1>
-    <p class="subtitle">Real-time sun tracker across the Pacific Northwest · <a href="powder.html" style="color:var(--color-powder-ink); text-decoration:none; font-weight:600;"><i data-lucide="cloud-snow" class="icon"></i> Find the Snow</a> · <a href="waves.html" style="color:var(--color-waves-ink); text-decoration:none; font-weight:600;"><i data-lucide="waves" class="icon"></i> Find the Waves</a></p>
-    <div class="tabs">
-      <button class="tab active" data-day="0">Today</button>
-      <button class="tab" data-day="1">Tomorrow</button>
-      <button class="tab" data-day="sat" id="satTab">Saturday</button>
-      <button class="tab" data-day="sun" id="sunTab">Sunday</button>
+<body data-theme="home">
+  <section class="hero hero--full hero--home">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand"><i data-lucide="compass"></i> Adventure Finder</a>
+      <div class="nav-links">
+        <a href="sunshine.html" class="nav-hide"><i data-lucide="sun"></i> Sun</a>
+        <a href="powder.html" class="nav-hide"><i data-lucide="cloud-snow"></i> Snow</a>
+        <a href="waves.html" class="nav-hide"><i data-lucide="waves"></i> Waves</a>
+        <a href="#explore" class="btn btn-ghost">Explore</a>
+      </div>
+    </nav>
+
+    <div class="hero-inner">
+      <div class="hero-kicker">Pacific Northwest</div>
+      <h1 class="hero-title">Find your next adventure</h1>
+      <p class="hero-sub">
+        Live weather, snow, and surf forecasts for Washington, Oregon, Idaho, and British
+        Columbia — so you always know where the conditions are best this weekend.
+      </p>
+      <div class="hero-actions">
+        <a href="#explore" class="btn btn-primary">Start exploring <i data-lucide="arrow-down"></i></a>
+      </div>
     </div>
-  </header>
-  
-  <div id="map"></div>
-  
-  <div class="loading" id="loading">
-    <div class="spinner"><i data-lucide="sun"></i></div>
-    <p>Checking the skies...</p>
-  </div>
-  
-  <footer>
-    Data from <a href="https://open-meteo.com/">Open-Meteo API</a> and <a href="https://eonet.gsfc.nasa.gov/">NASA EONET</a> •
-    Updated: <span id="lastUpdated">-</span>
-  </footer>
+  </section>
 
-  <script>
-    const MOBILE_BREAKPOINT = '(max-width: 640px)';
-    const FIRE_SEARCH_BOUNDS = {
-      minLat: 41.0,
-      maxLat: 52.5,
-      minLon: -126.5,
-      maxLon: -108.0,
-    };
+  <main>
+    <section class="section section--narrow">
+      <div class="section-inner">
+        <div class="section-kicker">One place, three forecasts</div>
+        <h2 class="section-title">Chase the sun, snow, and swell</h2>
+        <p class="lead">
+          Adventure Finder pulls real-time data from Open-Meteo and NOAA and maps it across the
+          region, so you can spend less time refreshing forecasts and more time outside.
+        </p>
+      </div>
+    </section>
 
-    // Pacific Northwest cities with coordinates
-    const cities = [
-      { name: 'Seattle', lat: 47.6062, lon: -122.3321 },
-      { name: 'Bellingham', lat: 48.7519, lon: -122.4787 },
-      { name: 'Vancouver, BC', lat: 49.2827, lon: -123.1207 },
-      { name: 'Tofino, BC', lat: 49.1536, lon: -125.9067 },
-      { name: 'Ucluelet, BC', lat: 48.9397, lon: -125.5461 },
-      { name: 'Port Renfrew, BC', lat: 48.5583, lon: -124.4028 },
-      { name: 'Jordan River, BC', lat: 48.4272, lon: -123.9690 },
-      { name: 'Sooke, BC', lat: 48.3747, lon: -123.7269 },
-      { name: 'Victoria, BC', lat: 48.4284, lon: -123.3656 },
-      { name: 'Vantage', lat: 46.9454, lon: -119.9869 },
-      { name: 'Spokane', lat: 47.6588, lon: -117.4260 },
-      { name: 'Portland', lat: 45.5152, lon: -122.6784 },
-      { name: 'Bend', lat: 44.0582, lon: -121.3153 },
-      { name: 'North Bend, WA', lat: 47.4957, lon: -121.7868 },
-      { name: 'Snoqualmie Pass', lat: 47.4281, lon: -121.4116 },
-      { name: 'Crystal Mountain', lat: 46.56, lon: -121.29},
-      { name: 'Stevens Pass', lat: 47.745, lon: -121.09},
-      { name: 'Mazama', lat: 48.5918, lon: -120.4043 },
-      { name: 'Leavenworth', lat: 47.5962, lon: -120.6615 },
-      { name: 'Walla Walla', lat: 46.0646, lon: -118.3430 },
-      { name: 'Olympia', lat: 47.0379, lon: -122.9007 },
-      { name: 'Tacoma', lat: 47.2529, lon: -122.4443 },
-      { name: 'Eugene', lat: 44.0521, lon: -123.0868 },
-      { name: 'Hurricane Ridge', lat: 47.9692, lon: -123.4986 },
-    ];
+    <section class="section" id="explore" style="padding-top: 0;">
+      <div class="section-inner">
+        <div class="activity-grid">
+          <a class="activity-card" href="sunshine.html" data-theme="sun">
+            <div class="activity-photo" style="background-image:url('images/card-sun.jpg')"></div>
+            <div class="activity-body">
+              <i data-lucide="sun" class="activity-icon"></i>
+              <div class="activity-title">Find the Sun</div>
+              <div class="activity-desc">
+                A live map of clear skies across 18+ PNW cities, ranking the closest sunny spots
+                for today and the weekend.
+              </div>
+              <span class="activity-cta">Open Sunshine Finder <i data-lucide="arrow-right"></i></span>
+            </div>
+          </a>
 
-    // Weather codes - sunny/clear conditions
-    const weatherCodes = {
-      0: { desc: 'Clear Sky', sunny: true , icon: 'sun' },
-      1: { desc: 'Mainly Clear', sunny: true , icon: 'cloud-sun' },
-      2: { desc: 'Partly Cloudy', sunny: false , icon: 'cloud-sun' },
-      3: { desc: 'Overcast', sunny: false , icon: 'cloud' },
-      45: { desc: 'Foggy', sunny: false , icon: 'cloud-fog' },
-      48: { desc: 'Depositing Fog', sunny: false , icon: 'cloud-fog' },
-      51: { desc: 'Light Drizzle', sunny: false , icon: 'cloud-drizzle' },
-      53: { desc: 'Drizzle', sunny: false , icon: 'cloud-drizzle' },
-      55: { desc: 'Dense Drizzle', sunny: false , icon: 'cloud-drizzle' },
-      61: { desc: 'Light Rain', sunny: false , icon: 'cloud-rain' },
-      63: { desc: 'Rain', sunny: false , icon: 'cloud-rain' },
-      65: { desc: 'Heavy Rain', sunny: false , icon: 'cloud-rain' },
-      66: { desc: 'Freezing Rain', sunny: false , icon: 'cloud-snow' },
-      67: { desc: 'Heavy Freezing Rain', sunny: false , icon: 'cloud-snow' },
-      71: { desc: 'Light Snow', sunny: false , icon: 'cloud-snow' },
-      73: { desc: 'Snow', sunny: false , icon: 'cloud-snow' },
-      75: { desc: 'Heavy Snow', sunny: false , icon: 'cloud-snow' },
-      77: { desc: 'Snow Grains', sunny: false , icon: 'snowflake' },
-      80: { desc: 'Rain Showers', sunny: false , icon: 'cloud-rain' },
-      81: { desc: 'Moderate Showers', sunny: false , icon: 'cloud-rain' },
-      82: { desc: 'Heavy Showers', sunny: false , icon: 'cloud-rain' },
-      85: { desc: 'Snow Showers', sunny: false , icon: 'cloud-snow' },
-      86: { desc: 'Heavy Snow Showers', sunny: false , icon: 'cloud-snow' },
-      95: { desc: 'Thunderstorm', sunny: false , icon: 'cloud-lightning' },
-      96: { desc: 'Thunderstorm w/ Hail', sunny: false , icon: 'cloud-lightning' },
-      99: { desc: 'Thunderstorm w/ Heavy Hail', sunny: false , icon: 'cloud-lightning' },
-    };
+          <a class="activity-card" href="powder.html" data-theme="powder">
+            <div class="activity-photo" style="background-image:url('images/card-snow.jpg')"></div>
+            <div class="activity-body">
+              <i data-lucide="cloud-snow" class="activity-icon"></i>
+              <div class="activity-title">Find the Snow</div>
+              <div class="activity-desc">
+                7-day snowfall forecasts for PNW ski resorts, so you know where the powder is
+                stacking up before you drive.
+              </div>
+              <span class="activity-cta">Open Powder Finder <i data-lucide="arrow-right"></i></span>
+            </div>
+          </a>
 
-    // Fallback weather descriptor for unrecognised WMO codes
-    const UNKNOWN_WEATHER = { desc: 'Unknown', sunny: false, icon: 'circle-help' };
-    const SEATTLE_LAT = 47.6062;
-    const SEATTLE_LON = -122.3321;
-
-    // Additional outdoor activity hub towns used when main cities don't provide 3 sunny spots
-    const fallbackCities = [
-      { name: 'Sequim', lat: 48.0751, lon: -123.1068 },
-      { name: 'Anacortes', lat: 48.5126, lon: -122.6127 },
-      { name: 'Mount Vernon', lat: 48.4218, lon: -122.3340 },
-      { name: 'Wenatchee', lat: 47.4235, lon: -120.3103 },
-      { name: 'Ellensburg', lat: 46.9965, lon: -120.5478 },
-      { name: 'Chelan', lat: 47.8360, lon: -120.0180 },
-      { name: 'Yakima', lat: 46.6021, lon: -120.5059 },
-      { name: 'Centralia', lat: 46.7162, lon: -122.9543 },
-      { name: 'Hood River', lat: 45.7054, lon: -121.5219 },
-      { name: 'Kelso', lat: 46.1468, lon: -122.9065 },
-      { name: 'Astoria', lat: 46.1879, lon: -123.8313 },
-      { name: 'The Dalles', lat: 45.5946, lon: -121.1787 },
-      { name: 'Coeur d\'Alene', lat: 47.6777, lon: -116.7805 },
-      { name: 'Tri-Cities', lat: 46.2396, lon: -119.1006 },
-      { name: 'Sandpoint', lat: 48.2766, lon: -116.5534 },
-      { name: 'Missoula', lat: 46.8721, lon: -113.9940 },
-      { name: 'Boise', lat: 43.6150, lon: -116.2023 },
-      { name: 'Medford', lat: 42.3265, lon: -122.8756 },
-    ];
-
-    // Broader set of cities polled when main + fallback still yield fewer than 3 sunny spots.
-    // Sorted by the runtime distance calculation; defined here in rough geographic order.
-    const expandedCities = [
-      // Washington State coast / east (beyond main + fallback lists)
-      { name: 'Victoria BC',        lat: 48.4284, lon: -123.3656 },
-      { name: 'Aberdeen WA',        lat: 46.9759, lon: -123.8157 },
-      { name: 'Ocean Shores WA',    lat: 47.0043, lon: -124.1557 },
-      { name: 'Long Beach WA',      lat: 46.3518, lon: -124.0522 },
-      { name: 'Okanogan WA',        lat: 48.3601, lon: -119.5734 },
-      { name: 'Republic WA',        lat: 48.6498, lon: -118.7323 },
-      { name: 'Colville WA',        lat: 48.5465, lon: -117.9090 },
-      // Oregon (beyond Portland / Bend / Eugene / Medford)
-      { name: 'Salem OR',           lat: 44.9429, lon: -123.0351 },
-      { name: 'Grants Pass OR',     lat: 42.4393, lon: -123.3284 },
-      { name: 'Klamath Falls OR',   lat: 42.2249, lon: -121.7817 },
-      // British Columbia interior
-      { name: 'Kelowna BC',         lat: 49.8880, lon: -119.4960 },
-      { name: 'Kamloops BC',        lat: 50.6745, lon: -120.3273 },
-      { name: 'Prince George BC',   lat: 53.9171, lon: -122.7497 },
-      // Idaho (beyond Boise / Coeur d'Alene / Sandpoint)
-      { name: 'Moscow ID',          lat: 46.7324, lon: -117.0002 },
-      { name: 'Lewiston ID',        lat: 46.4165, lon: -117.0177 },
-      { name: 'Twin Falls ID',      lat: 42.5558, lon: -114.4607 },
-      // Montana (beyond Missoula)
-      { name: 'Kalispell MT',       lat: 48.1920, lon: -114.3168 },
-      { name: 'Helena MT',          lat: 46.5958, lon: -112.0270 },
-      { name: 'Great Falls MT',     lat: 47.5002, lon: -111.3008 },
-      { name: 'Billings MT',        lat: 45.7833, lon: -108.5007 },
-      // Alberta, Canada
-      { name: 'Calgary AB',         lat: 51.0447, lon: -114.0719 },
-      { name: 'Edmonton AB',        lat: 53.5461, lon: -113.4938 },
-      // Northern California
-      { name: 'Eureka CA',          lat: 40.8021, lon: -124.1637 },
-      { name: 'Redding CA',         lat: 40.5865, lon: -122.3917 },
-      // Nevada
-      { name: 'Reno NV',            lat: 39.5296, lon: -119.8138 },
-      // Central / Southern California
-      { name: 'Sacramento CA',      lat: 38.5816, lon: -121.4944 },
-      { name: 'San Francisco CA',   lat: 37.7749, lon: -122.4194 },
-      { name: 'Los Angeles CA',     lat: 34.0522, lon: -118.2437 },
-      { name: 'San Diego CA',       lat: 32.7157, lon: -117.1611 },
-      // Intermountain West
-      { name: 'Salt Lake City UT',  lat: 40.7608, lon: -111.8910 },
-      { name: 'Las Vegas NV',       lat: 36.1699, lon: -115.1398 },
-      { name: 'Phoenix AZ',         lat: 33.4484, lon: -112.0740 },
-      { name: 'Denver CO',          lat: 39.7392, lon: -104.9903 },
-    ];
-
-    // Cache fetched fallback city data to avoid re-fetching on tab switches
-    let fallbackCityCache = {};
-
-    // Cache fetched expanded city data to avoid re-fetching on tab switches
-    let expandedCityCache = {};
-
-    // Haversine formula: straight-line distance in miles between two lat/lon points
-    function distanceMiles(lat1, lon1, lat2, lon2) {
-      const R = 3958.8; // Earth's mean radius in miles
-      const toRad = x => x * Math.PI / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) ** 2 +
-                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    // Returns true for WMO codes that qualify as "partly sunny or better" (codes 0, 1, 2)
-    function isPartlySunnyOrBetter(code) {
-      return code === 0 || code === 1 || code === 2;
-    }
-
-    // Daylight window used to evaluate the day's dominant weather pattern.
-    const DAYLIGHT_START_HOUR = 7;  // 7 am (inclusive)
-    const DAYLIGHT_END_HOUR   = 19; // 7 pm (exclusive)
-    // Fraction of daylight hours that must be partly-sunny-or-better for a day
-    // to be considered "sunny".  0.5 = majority required.
-    const SUNNY_MAJORITY_THRESHOLD = 0.5;
-
-    // Returns true if at least SUNNY_MAJORITY_THRESHOLD of daylight hours
-    // (7 am–7 pm) for the given day have a partly-sunny-or-better code (0/1/2).
-    // Falls back to the daily code when hourly data is unavailable.
-    function hasSufficientSunshine(cityData, dayIndex) {
-      if (cityData.hourlyData && cityData.hourlyData.weather_code) {
-        const dayStart = dayIndex * 24;
-        const codes = cityData.hourlyData.weather_code;
-        let sunnyCount = 0;
-        let totalDaylight = 0;
-        for (let h = DAYLIGHT_START_HOUR; h < DAYLIGHT_END_HOUR; h++) {
-          const i = dayStart + h;
-          if (i >= codes.length) continue;
-          totalDaylight++;
-          if (isPartlySunnyOrBetter(codes[i])) sunnyCount++;
-        }
-        if (totalDaylight === 0) {
-          return cityData.dailyData && isPartlySunnyOrBetter(cityData.dailyData.weather_code[dayIndex]);
-        }
-        return sunnyCount / totalDaylight >= SUNNY_MAJORITY_THRESHOLD;
-      }
-      // Fallback: use daily code
-      return cityData.dailyData && isPartlySunnyOrBetter(cityData.dailyData.weather_code[dayIndex]);
-    }
-
-    // Returns the dominant (most frequent) hourly weather code during daylight
-    // hours (7 am–7 pm) for the given day, or the daily code as fallback.
-    // Ties are broken by preferring the lower (sunnier) code.
-    function dominantDaylightCode(cityData, dayIndex) {
-      if (cityData.hourlyData && cityData.hourlyData.weather_code) {
-        const dayStart = dayIndex * 24;
-        const codes = cityData.hourlyData.weather_code;
-        const freq = {};
-        for (let h = DAYLIGHT_START_HOUR; h < DAYLIGHT_END_HOUR; h++) {
-          const i = dayStart + h;
-          if (i >= codes.length) continue;
-          freq[codes[i]] = (freq[codes[i]] || 0) + 1;
-        }
-        const entries = Object.entries(freq);
-        if (entries.length > 0) {
-          entries.sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]));
-          return parseInt(entries[0][0], 10);
-        }
-      }
-      return cityData.dailyData ? cityData.dailyData.weather_code[dayIndex] : null;
-    }
-
-    function getAqiForDay(cityData, dayIndex) {
-      if (!cityData.aqiHourly || !Array.isArray(cityData.aqiHourly)) return null;
-      const startHour = dayIndex * 24;
-      const endHour = startHour + 24;
-      const dayAqiValues = cityData.aqiHourly
-        .slice(startHour, endHour)
-        .filter(value => Number.isFinite(value));
-
-      if (dayAqiValues.length === 0) return null;
-      return Math.round(Math.max(...dayAqiValues));
-    }
-
-    function getAqiCategory(aqi) {
-      if (!Number.isFinite(aqi)) return { className: 'aqi-unknown', label: 'Unknown' };
-      if (aqi <= 50) return { className: 'aqi-good', label: 'Good' };
-      if (aqi <= 100) return { className: 'aqi-moderate', label: 'Moderate' };
-      if (aqi <= 150) return { className: 'aqi-usg', label: 'Unhealthy for Sensitive Groups' };
-      if (aqi <= 200) return { className: 'aqi-unhealthy', label: 'Unhealthy' };
-      if (aqi <= 300) return { className: 'aqi-very-unhealthy', label: 'Very Unhealthy' };
-      return { className: 'aqi-hazardous', label: 'Hazardous' };
-    }
-
-    function getSunHoursForDay(cityData, dayIndex) {
-      if (!cityData.dailyData || !Array.isArray(cityData.dailyData.sunshine_duration)) {
-        return null;
-      }
-      const seconds = Number(cityData.dailyData.sunshine_duration[dayIndex]);
-      return Number.isFinite(seconds) ? seconds / 3600 : null;
-    }
-
-    function formatSunHours(hours) {
-      if (!Number.isFinite(Number(hours))) return 'Sun data unavailable';
-      return `${Number(hours).toFixed(1)} hr sun`;
-    }
-
-    // Track current markers and selected day
-    let markers = [];
-    let fireMarkers = [];
-    let activeFireData = [];
-    let selectedDayIndex = 0;
-    let showAqi = false;
-    let showFires = false;
-    
-    // Calculate days needed for forecast (up to next Sunday)
-    function calculateForecastDays() {
-      const today = new Date();
-      const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
-      
-      // Days until next Saturday/Sunday
-      // If today is already Sat or Sun, show NEXT week's weekend
-      let daysToSat, daysToSun;
-      if (dayOfWeek === 6) {
-        // Today is Saturday — show next Saturday (7 days) and next Sunday (8 days)
-        daysToSat = 7;
-        daysToSun = 8;
-      } else if (dayOfWeek === 0) {
-        // Today is Sunday — show next Saturday (6 days) and next Sunday (7 days)
-        daysToSat = 6;
-        daysToSun = 7;
-      } else {
-        // Mon–Fri — show this coming Saturday and Sunday
-        daysToSat = 6 - dayOfWeek;
-        daysToSun = 7 - dayOfWeek;
-      }
-      
-      return {
-        daysToSat,
-        daysToSun,
-        forecastDaysNeeded: Math.max(daysToSun + 1, 2) // At least 2 for today/tomorrow
-      };
-    }
-    
-    // Format date labels for tabs
-    function updateTabLabels() {
-      const today = new Date();
-      const { daysToSat, daysToSun } = calculateForecastDays();
-      
-      const satDate = new Date(today);
-      satDate.setDate(today.getDate() + daysToSat);
-      
-      const sunDate = new Date(today);
-      sunDate.setDate(today.getDate() + daysToSun);
-      
-      const formatDate = (date) => {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      };
-      
-      document.getElementById('satTab').textContent = `Saturday ${formatDate(satDate)}`;
-      document.getElementById('satTab').dataset.dayIndex = daysToSat;
-      
-      document.getElementById('sunTab').textContent = `Sunday ${formatDate(sunDate)}`;
-      document.getElementById('sunTab').dataset.dayIndex = daysToSun;
-    }
-
-    // Initialize map centered on PNW
-    const map = L.map('map').setView([47.5, -121.5], 7);
-    
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map);
-
-    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
-    map.on('popupopen', refreshIcons);
-
-    // Add legend
-    const legend = L.control({ position: 'topright' });
-    legend.onAdd = function() {
-      const div = L.DomUtil.create('div', 'legend');
-      const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
-      div.innerHTML = `
-        <div class="panel-header">
-          <h4>Weather</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
+          <a class="activity-card" href="waves.html" data-theme="waves">
+            <div class="activity-photo" style="background-image:url('images/card-waves.jpg')"></div>
+            <div class="activity-body">
+              <i data-lucide="waves" class="activity-icon"></i>
+              <div class="activity-title">Find the Waves</div>
+              <div class="activity-desc">
+                Wave height, swell, and tide outlook for Washington, Oregon, and BC surf spots,
+                with the best break of the day.
+              </div>
+              <span class="activity-cta">Open Wave Finder <i data-lucide="arrow-right"></i></span>
+            </div>
+          </a>
         </div>
-        <div class="panel-body">
-          <div class="legend-item"><i data-lucide="sun" class="legend-icon"></i> Clear/Sunny</div>
-          <div class="legend-item"><i data-lucide="cloud-sun" class="legend-icon"></i> Mainly Clear</div>
-          <div class="legend-item"><i data-lucide="cloud-sun" class="legend-icon"></i> Partly Cloudy</div>
-          <div class="legend-item"><i data-lucide="cloud" class="legend-icon"></i> Cloudy</div>
-          <div class="legend-item"><i data-lucide="cloud-rain" class="legend-icon"></i> Rain</div>
-          <div class="legend-item"><i data-lucide="cloud-snow" class="legend-icon"></i> Snow</div>
-          <div class="legend-item"><i data-lucide="flame" class="legend-icon"></i> Active Fire</div>
-          <div class="legend-toggle">
-            <label><input type="checkbox" id="toggleFires"> Show fires</label>
-          </div>
-          <div class="legend-toggle">
-            <label><input type="checkbox" id="toggleAqi"> Show AQI</label>
-          </div>
-        </div>
-      `;
-      if (isMobile) div.classList.add('panel-collapsed');
-      L.DomEvent.on(div.querySelector('.panel-header'), 'click', function() {
-        div.classList.toggle('panel-collapsed');
-      });
-      return div;
-    };
-    legend.addTo(map);
+      </div>
+    </section>
 
-    // Top 3 Closest Sunshine panel (topleft)
-    const top3Control = L.control({ position: 'topleft' });
-    top3Control.onAdd = function() {
-      const div = L.DomUtil.create('div', 'top3-panel');
-      const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
-      div.innerHTML = `
-        <div class="panel-header">
-          <h4><i data-lucide="trophy" class="icon"></i> 3 Closest Sunny Spots</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
-        </div>
-        <div class="panel-body">
-          <div id="top3Content"><div class="top3-none">Loading...</div></div>
-        </div>
-      `;
-      if (isMobile) div.classList.add('panel-collapsed');
-      L.DomEvent.on(div.querySelector('.panel-header'), 'click', function() {
-        div.classList.toggle('panel-collapsed');
-      });
-      return div;
-    };
-    top3Control.addTo(map);
-
-    // Update the Top 3 Closest Sunshine panel for the given day
-    async function updateTop3Panel(dayIndex) {
-      const panel = document.getElementById('top3Content');
-      if (!panel) return;
-
-      panel.innerHTML = '<div class="top3-none">Searching...</div>';
-
-      const { forecastDaysNeeded } = calculateForecastDays();
-
-      // Collect qualifying spots from the already-fetched main cities
-      const qualifying = allCityData
-        .filter(c => c.dailyData && hasSufficientSunshine(c, dayIndex))
-        .map(c => ({
-          name: c.name,
-          lat: c.lat,
-          lon: c.lon,
-          weatherCode: dominantDaylightCode(c, dayIndex),
-          distance: distanceMiles(SEATTLE_LAT, SEATTLE_LON, c.lat, c.lon),
-          aqi: getAqiForDay(c, dayIndex),
-          sunHours: getSunHoursForDay(c, dayIndex)
-        }))
-        .sort((a, b) => a.distance - b.distance);
-
-      let top3 = qualifying.slice(0, 3);
-
-      // If fewer than 3 found, expand search to fallback outdoor-hub cities
-      if (top3.length < 3) {
-        const alreadyFetched = new Set(allCityData.map(c => c.name));
-        const fallbacksSorted = fallbackCities
-          .filter(c => !alreadyFetched.has(c.name))
-          .map(c => ({ ...c, distance: distanceMiles(SEATTLE_LAT, SEATTLE_LON, c.lat, c.lon) }))
-          .sort((a, b) => a.distance - b.distance);
-
-        for (const city of fallbacksSorted) {
-          if (top3.length >= 3) break;
-
-          // Use cached result if available
-          let cityData = fallbackCityCache[city.name];
-          if (!cityData) {
-            cityData = await fetchWeatherForCity(city, forecastDaysNeeded);
-            fallbackCityCache[city.name] = cityData;
-          }
-
-          if (hasSufficientSunshine(cityData, dayIndex)) {
-            top3.push({
-              name: city.name,
-              lat: city.lat,
-              lon: city.lon,
-              weatherCode: dominantDaylightCode(cityData, dayIndex),
-              distance: city.distance,
-              aqi: getAqiForDay(cityData, dayIndex),
-              sunHours: getSunHoursForDay(cityData, dayIndex)
-            });
-          }
-        }
-      }
-
-      // If still fewer than 3, search progressively farther cities at expanding distances
-      if (top3.length < 3) {
-        const alreadySearched = new Set([
-          ...allCityData.map(c => c.name),
-          ...Object.keys(fallbackCityCache),
-        ]);
-        const expandedSorted = expandedCities
-          .filter(c => !alreadySearched.has(c.name))
-          .map(c => ({ ...c, distance: distanceMiles(SEATTLE_LAT, SEATTLE_LON, c.lat, c.lon) }))
-          .sort((a, b) => a.distance - b.distance);
-
-        if (expandedSorted.length > 0) {
-          panel.innerHTML = '<div class="top3-none">Searching further out...</div>';
-        }
-
-        for (const city of expandedSorted) {
-          if (top3.length >= 3) break;
-
-          let cityData = expandedCityCache[city.name];
-          if (!cityData) {
-            cityData = await fetchWeatherForCity(city, forecastDaysNeeded);
-            expandedCityCache[city.name] = cityData;
-          }
-
-          if (hasSufficientSunshine(cityData, dayIndex)) {
-            top3.push({
-              name: city.name,
-              lat: city.lat,
-              lon: city.lon,
-              weatherCode: dominantDaylightCode(cityData, dayIndex),
-              distance: city.distance,
-              aqi: getAqiForDay(cityData, dayIndex),
-              sunHours: getSunHoursForDay(cityData, dayIndex)
-            });
-          }
-        }
-      }
-
-      // Sort by distance so medals always reflect true proximity to Seattle
-      top3.sort((a, b) => a.distance - b.distance);
-
-      if (top3.length === 0) {
-        panel.innerHTML = '<div class="top3-none">No sunny spots found <i data-lucide="cloud-off" class="icon"></i></div>';
-        return;
-      }
-
-      const medals = ['<i data-lucide="medal" class="top3-medal medal-1"></i>', '<i data-lucide="medal" class="top3-medal medal-2"></i>', '<i data-lucide="medal" class="top3-medal medal-3"></i>'];
-      panel.innerHTML = top3.map((city, i) => {
-        const weather = weatherCodes[city.weatherCode] || UNKNOWN_WEATHER;
-        const aqiMeta = getAqiCategory(city.aqi);
-        const aqiDisplay = showAqi && city.aqi !== null
-          ? `<span class="top3-aqi ${aqiMeta.className}" title="AQI ${city.aqi} (${aqiMeta.label})">${city.aqi}</span>`
-          : '';
-        const sunText = formatSunHours(city.sunHours);
-        return `
-          <div class="top3-item">
-            <span class="top3-rank">${medals[i]}</span>
-            <i data-lucide="${weather.icon}" class="top3-icon"></i>
-            ${aqiDisplay}
-            <div class="top3-info">
-              <div class="top3-city">${city.name}</div>
-              <div class="top3-dist">${Math.round(city.distance)} mi from Seattle</div>
-              <div class="top3-sun">${sunText}</div>
+    <section class="section" style="background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+      <div class="section-inner">
+        <div class="split">
+          <div class="split-media" style="background-image:url('images/how-it-works.jpg')"></div>
+          <div class="split-body">
+            <div class="section-kicker">How it works</div>
+            <h2 class="section-title">Real forecasts, mapped for the weekend</h2>
+            <div class="split-steps">
+              <div class="split-step">
+                <div class="step-icon"><i data-lucide="map-pin"></i></div>
+                <div><h4>Pick your activity</h4><p>Jump into the sun, snow, or wave finder from anywhere on the site.</p></div>
+              </div>
+              <div class="split-step">
+                <div class="step-icon"><i data-lucide="cloud-sun"></i></div>
+                <div><h4>See live conditions</h4><p>Weather, snowfall, swell, and tides update automatically across the region.</p></div>
+              </div>
+              <div class="split-step">
+                <div class="step-icon"><i data-lucide="compass"></i></div>
+                <div><h4>Go where it's best</h4><p>We surface the closest, highest-quality spots so you can just pack and go.</p></div>
+              </div>
             </div>
           </div>
-        `;
-      }).join('');
-      refreshIcons();
-    }
+        </div>
+      </div>
+    </section>
+  </main>
 
-    // Create custom emoji marker
-    function createEmojiIcon(iconName, isSunny, aqi) {
-      const aqiMeta = getAqiCategory(aqi);
-      const aqiMarkup = aqi !== null
-        ? `<span class="marker-aqi ${aqiMeta.className}" title="AQI ${aqi} (${aqiMeta.label})">${aqi}</span>`
-        : '';
-      return L.divIcon({
-        html: `<div class="marker-wrap"><i data-lucide="${iconName}" class="marker-icon${isSunny ? ' marker-sunny' : ''}"></i>${aqiMarkup}</div>`,
-        className: 'emoji-marker',
-        iconSize: [74, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20]
-      });
-    }
+  <footer>
+    Weather from <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> ·
+    Tides from <a href="https://tidesandcurrents.noaa.gov/" target="_blank" rel="noreferrer">NOAA</a> ·
+    Photography by Alexis Kane
+  </footer>
 
-    function createFireIcon() {
-      return L.divIcon({
-        html: `<i data-lucide="flame" class="marker-icon marker-fire"></i>`,
-        className: 'fire-marker',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -12]
-      });
-    }
-
-    function clearFireMarkers() {
-      fireMarkers.forEach(marker => map.removeLayer(marker));
-      fireMarkers = [];
-    }
-
-    function renderFireMarkers() {
-      clearFireMarkers();
-      if (!showFires) return;
-
-      activeFireData.forEach(fire => {
-        const marker = L.marker([fire.lat, fire.lon], { icon: createFireIcon() }).addTo(map);
-        const updatedAt = fire.lastSeen ? new Date(fire.lastSeen).toLocaleString() : 'Unknown';
-        marker.bindPopup(`
-          <div class="city-popup">
-            <h3>${fire.title}</h3>
-            <div class="conditions"><i data-lucide="flame" class="icon"></i> Active wildfire</div>
-            <div class="temp">Updated: ${updatedAt}</div>
-          </div>
-        `);
-        fireMarkers.push(marker);
-      });
-      refreshIcons();
-    }
-
-    function isInFireSearchBounds(lat, lon) {
-      return (
-        lat >= FIRE_SEARCH_BOUNDS.minLat &&
-        lat <= FIRE_SEARCH_BOUNDS.maxLat &&
-        lon >= FIRE_SEARCH_BOUNDS.minLon &&
-        lon <= FIRE_SEARCH_BOUNDS.maxLon
-      );
-    }
-
-    function getLatestFirePoint(geometry) {
-      if (!Array.isArray(geometry)) return null;
-      const points = geometry.filter(item =>
-        item &&
-        item.type === 'Point' &&
-        Array.isArray(item.coordinates) &&
-        item.coordinates.length >= 2
-      );
-      if (points.length === 0) return null;
-
-      points.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-      return points[0];
-    }
-
-    async function fetchActiveFires() {
-      const firesUrl = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=250';
-      try {
-        const response = await fetch(firesUrl);
-        if (!response.ok) {
-          throw new Error(`Status ${response.status}`);
-        }
-        const data = await response.json();
-        const events = Array.isArray(data.events) ? data.events : [];
-
-        activeFireData = events
-          .map(event => {
-            const latestPoint = getLatestFirePoint(event.geometry);
-            if (!latestPoint) return null;
-            const lon = latestPoint.coordinates[0];
-            const lat = latestPoint.coordinates[1];
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            if (!isInFireSearchBounds(lat, lon)) return null;
-
-            return {
-              id: event.id,
-              title: event.title || 'Active wildfire',
-              lat,
-              lon,
-              lastSeen: latestPoint.date || null,
-            };
-          })
-          .filter(Boolean)
-          .sort((a, b) => distanceMiles(SEATTLE_LAT, SEATTLE_LON, a.lat, a.lon) - distanceMiles(SEATTLE_LAT, SEATTLE_LON, b.lat, b.lon))
-          .slice(0, 40);
-      } catch (error) {
-        console.error('Failed to fetch active wildfires:', error);
-        activeFireData = [];
-      }
-    }
-
-    async function fetchWeatherForCity(city, forecastDays) {
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
-      const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=us_aqi&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
-      
-      try {
-        const response = await fetch(weatherUrl);
-        if (!response.ok) {
-          throw new Error(`Status ${response.status}`);
-        }
-        const data = await response.json();
-        let aqiHourly = null;
-
-        try {
-          const aqiResponse = await fetch(aqiUrl);
-          if (!aqiResponse.ok) {
-            throw new Error(`Status ${aqiResponse.status}`);
-          }
-          const aqiData = await aqiResponse.json();
-          aqiHourly = aqiData.hourly && Array.isArray(aqiData.hourly.us_aqi)
-            ? aqiData.hourly.us_aqi
-            : null;
-        } catch (aqiError) {
-          console.error(`Failed to fetch AQI for ${city.name}:`, aqiError);
-        }
-        
-        return {
-          ...city,
-          dailyData: data.daily,
-          hourlyData: data.hourly || null,
-          aqiHourly,
-          currentTemp: Math.round(data.current.temperature_2m)
-        };
-      } catch (error) {
-        console.error(`Failed to fetch weather for ${city.name}:`, error);
-        return {
-          ...city,
-          dailyData: null,
-          hourlyData: null,
-          aqiHourly: null,
-          currentTemp: '--'
-        };
-      }
-    }
-    
-    function getWeatherForDay(cityData, dayIndex) {
-      if (!cityData.dailyData || cityData.dailyData.weather_code[dayIndex] === undefined) {
-        return {
-          weather: { desc: 'Unavailable', sunny: false, icon: 'circle-help' },
-          highTemp: '--',
-          lowTemp: '--',
-          isSunny: false
-        };
-      }
-      
-      const weatherCode = dominantDaylightCode(cityData, dayIndex) ?? cityData.dailyData.weather_code[dayIndex];
-      const weather = weatherCodes[weatherCode] || UNKNOWN_WEATHER;
-      
-      return {
-        weather,
-        highTemp: Math.round(cityData.dailyData.temperature_2m_max[dayIndex]),
-        lowTemp: Math.round(cityData.dailyData.temperature_2m_min[dayIndex]),
-        isSunny: hasSufficientSunshine(cityData, dayIndex)
-      };
-    }
-    
-    // Store fetched data globally
-    let allCityData = [];
-    
-    function clearMarkers() {
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
-    }
-    
-    function displayWeatherForDay(dayIndex) {
-      clearMarkers();
-      selectedDayIndex = dayIndex;
-      
-      const isToday = dayIndex === 0;
-      
-      allCityData.forEach(cityData => {
-        const dayWeather = getWeatherForDay(cityData, dayIndex);
-        const aqiValue = getAqiForDay(cityData, dayIndex);
-        const icon = createEmojiIcon(dayWeather.weather.icon, dayWeather.isSunny, showAqi ? aqiValue : null);
-        const marker = L.marker([cityData.lat, cityData.lon], { icon }).addTo(map);
-        
-        const tempDisplay = isToday 
-          ? `Currently: ${cityData.currentTemp}°F<br>High: ${dayWeather.highTemp}°F / Low: ${dayWeather.lowTemp}°F`
-          : `High: ${dayWeather.highTemp}°F / Low: ${dayWeather.lowTemp}°F`;
-        const aqiMeta = getAqiCategory(aqiValue);
-        const aqiDisplay = showAqi && aqiValue !== null
-          ? `<div class="conditions">AQI: <span class="popup-aqi ${aqiMeta.className}">${aqiValue}</span> ${aqiMeta.label}</div>`
-          : '';
-        
-        marker.bindPopup(`
-          <div class="city-popup">
-            <h3>${cityData.name}</h3>
-            <i data-lucide="${dayWeather.weather.icon}" class="weather-icon"></i>
-            <div class="conditions">${dayWeather.weather.desc}</div>
-            ${aqiDisplay}
-            <div class="temp">${tempDisplay}</div>
-            ${dayWeather.isSunny ? '<p style="color: var(--color-sun-ink); font-weight: bold; margin-top: 0.5rem;"><i data-lucide=\'sun\' class="icon"></i> Sunny!</p>' : ''}
-          </div>
-        `);
-        
-        markers.push(marker);
-      });
-      
-      refreshIcons();
-      // Log sunny cities
-      const sunnyCities = allCityData.filter(c => getWeatherForDay(c, dayIndex).isSunny);
-      console.log(`Sunny cities for day ${dayIndex}:`, sunnyCities.map(c => c.name).join(', ') || 'None');
-    }
-
-    async function updateAllWeather() {
-      const loading = document.getElementById('loading');
-      loading.classList.remove('hidden');
-      
-      const { forecastDaysNeeded } = calculateForecastDays();
-      
-      // Clear fallback cache on each refresh so data stays fresh
-      fallbackCityCache = {};
-      expandedCityCache = {};
-
-      // Fetch all city weather in parallel
-      const weatherPromises = cities.map(city => fetchWeatherForCity(city, forecastDaysNeeded));
-      allCityData = await Promise.all(weatherPromises);
-      
-      // Display weather for currently selected day
-      displayWeatherForDay(selectedDayIndex);
-      
-      // Update timestamp
-      document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
-      
-      loading.classList.add('hidden');
-
-      // Update Top 3 panel asynchronously (may fetch additional fallback data)
-      updateTop3Panel(selectedDayIndex);
-
-      if (showFires) {
-        await fetchActiveFires();
-        renderFireMarkers();
-      }
-    }
-    
-    // Tab click handlers
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        
-        let dayIndex;
-        const dayAttr = tab.dataset.day;
-        
-        if (dayAttr === 'sat') {
-          dayIndex = parseInt(tab.dataset.dayIndex);
-        } else if (dayAttr === 'sun') {
-          dayIndex = parseInt(tab.dataset.dayIndex);
-        } else {
-          dayIndex = parseInt(dayAttr);
-        }
-        
-        displayWeatherForDay(dayIndex);
-        updateTop3Panel(dayIndex);
-      });
-    });
-
-    const firesToggle = document.getElementById('toggleFires');
-    const aqiToggle = document.getElementById('toggleAqi');
-
-    if (firesToggle) {
-      showFires = firesToggle.checked;
-      firesToggle.addEventListener('change', async () => {
-        showFires = firesToggle.checked;
-        if (showFires && activeFireData.length === 0) {
-          await fetchActiveFires();
-        }
-        renderFireMarkers();
-      });
-    }
-
-    if (aqiToggle) {
-      showAqi = aqiToggle.checked;
-      aqiToggle.addEventListener('change', () => {
-        showAqi = aqiToggle.checked;
-        displayWeatherForDay(selectedDayIndex);
-        updateTop3Panel(selectedDayIndex);
-      });
-    }
-
-    // Initialize
-    if (window.lucide) lucide.createIcons();  // upgrade static header/spinner icons
-    updateTabLabels();
-    updateAllWeather();
-    
-    // Refresh every 15 minutes
-    setInterval(updateAllWeather, 15 * 60 * 1000);
-  </script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

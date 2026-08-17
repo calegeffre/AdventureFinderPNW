@@ -14,20 +14,21 @@
    1. Design tokens  (@theme → generates utilities AND :root CSS variables)
    --------------------------------------------------------------------------*/
 @theme {
-  /* Typography — Lora serif display + clean humanist body */
-  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Segoe UI', system-ui, sans-serif;
+  /* Typography — modern geometric sans (Poppins) */
+  --font-display: 'Poppins', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
 
-  /* Warm "paper" neutrals (shared canvas for every adventure) */
-  --color-sand: #efe6d1;       /* page background            */
-  --color-cream: #fbf7ee;      /* cards / surfaces / header   */
-  --color-parchment: #e7dcc2;  /* footer band / deeper fill   */
-  --color-clay: #e3d5b7;       /* raised cells                */
-  --color-bark: #d3c09a;       /* borders                     */
-  --color-umber: #1f1e23;      /* primary ink (charcoal, from palette)*/
-  --color-driftwood: #6a5e49;  /* muted text                  */
-  --color-stone: #90815f;      /* dim text / footer           */
-  --color-soft: #5c5240;       /* secondary text              */
+  /* Neutrals */
+  --color-sand: #efe6d1;       /* legacy warm paper (fallback)*/
+  --color-cream: #ffffff;      /* clean white surfaces        */
+  --color-parchment: #eef1f4;  /* soft footer band            */
+  --color-clay: #e3d5b7;       /* raised cells (legacy)       */
+  --color-bark: #d3c09a;       /* legacy border               */
+  --color-umber: #1f1e23;      /* charcoal (text on accent fills)   */
+  --color-ink: #26374d;        /* primary body text (deep steel-navy)*/
+  --color-driftwood: #55606e;  /* muted text (cool slate)     */
+  --color-stone: #7b8592;      /* dim text / footer (slate)   */
+  --color-soft: #45505f;       /* secondary text              */
 
   /* Adventure accents — Figma palette. Fill = light palette hue (dark text
      sits on it); ink = darkened for legible colored text on the cream paper. */
@@ -67,36 +68,54 @@
       changes. Defaults below == the "sun" theme.
    --------------------------------------------------------------------------*/
 :root {
-  --bg: var(--color-sand);
-  --surface: var(--color-cream);
-  --border: var(--color-bark);
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --border: #e3e7ec;
   --accent: var(--color-sun);
   --accent-strong: var(--color-sun-ink);   /* accent for text on paper */
   --accent-ink: var(--color-umber);         /* dark text on accent fills */
-  --text: var(--color-umber);
+  --text: var(--color-ink);                 /* deep steel-navy body text */
   --text-muted: var(--color-driftwood);
   --text-dim: var(--color-stone);
   --footer-text: var(--color-stone);
-  --panel-bg: var(--color-cream);
-  --shadow-card: 0 6px 18px rgba(60, 45, 20, 0.10);
+  --panel-bg: var(--surface);
+  --footer-bg: var(--color-parchment);
+  --shadow-card: 0 10px 30px rgba(38, 55, 77, 0.08);
   --spinner-anim: spin 1s linear infinite;
 }
 
 [data-theme="sun"] {
+  --bg: #fef1cf;                 /* pale yellow */
+  --border: #efe2bf;
+  --footer-bg: #fbe6bf;
   --accent: var(--color-sun);
   --accent-strong: var(--color-sun-ink);
 }
 
 [data-theme="powder"] {
+  --bg: #b4c6e3;                 /* deeper periwinkle blue */
+  --border: #c3d2e8;
+  --footer-bg: #a7bcdd;
   --accent: var(--color-powder);
   --accent-strong: var(--color-powder-ink);
 }
 
 [data-theme="waves"] {
+  --bg: #dbe3ec;                 /* lighter blue */
+  --border: #cdd8e5;
+  --footer-bg: #cdd8e5;
   --accent: var(--color-waves);
   --accent-strong: var(--color-waves-ink);
   --accent-ink: var(--color-cream);  /* waves fill is dark → light text */
   --spinner-anim: bob 1.2s ease-in-out infinite;
+}
+
+[data-theme="home"] {
+  --bg: #e8e6bb;                 /* light yellow-green */
+  --border: #dcd8a8;
+  --footer-bg: #e2dfae;
+  --accent: var(--color-powder);          /* steel-blue brand accent */
+  --accent-strong: #394c65;               /* deep steel for text on paper */
 }
 
 /* ----------------------------------------------------------------------------
@@ -112,31 +131,29 @@
     min-height: 100vh;
   }
 
-  /* Poster header: cream field, bold accent rule across the top */
+  /* Content-page top bar (solid, sticky) */
   header {
     background: var(--surface);
-    padding: 1.25rem 2rem;
+    padding: 1rem 1.5rem;
     text-align: center;
-    border-top: 6px solid var(--accent);
     border-bottom: 1px solid var(--border);
   }
 
   h1 {
     font-family: var(--font-display);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    line-height: 1.1;
-    font-size: 1.9rem;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    font-size: 1.7rem;
     color: var(--text);
     margin-bottom: 0.35rem;
   }
 
   footer {
-    background: var(--color-parchment);
-    padding: 0.85rem;
+    background: var(--footer-bg);
+    padding: 1.1rem;
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: var(--footer-text);
     border-top: 1px solid var(--border);
   }
@@ -180,7 +197,7 @@
   .back-link:hover { text-decoration: underline; }
   .header-link.secondary { color: var(--text-muted); }
 
-  /* --- Day tabs (poster-style pills, uppercase) -------------------------- */
+  /* --- Day tabs (rounded pills) ----------------------------------------- */
   .tabs {
     display: flex;
     justify-content: center;
@@ -189,21 +206,20 @@
     flex-wrap: wrap;
   }
   .tab {
-    padding: 0.55rem 1.1rem;
-    background: transparent;
+    padding: 0.5rem 1.15rem;
+    background: var(--surface);
     border: 1.5px solid var(--border);
     color: var(--text-muted);
-    border-radius: 8px;
+    border-radius: 999px;
     cursor: pointer;
     font-family: var(--font-display);
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0;
     transition: all 0.2s;
   }
   .tab:hover {
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
     border-color: var(--accent);
     color: var(--accent-strong);
   }
@@ -211,7 +227,7 @@
     background: var(--accent);
     color: var(--accent-ink);
     border-color: var(--accent);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* --- Poster card / panel (legend / map-panel / top3-panel / best-panel) */
@@ -222,14 +238,14 @@
   .best-panel {
     background: var(--panel-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 1rem;
     margin: 0.5rem;
     box-shadow: var(--shadow-card);
   }
   .map-panel {
-    border-radius: 10px;
-    box-shadow: 0 10px 28px rgba(60, 45, 20, 0.18);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(38, 55, 77, 0.16);
   }
   .panel h4,
   .legend h4,
@@ -237,10 +253,9 @@
   .top3-panel h4,
   .best-panel h4 {
     font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: -0.005em;
     color: var(--accent-strong);
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     font-weight: 600;
   }
 
@@ -306,6 +321,181 @@
   .icon-title { width: 1.5em; height: 1.5em; vertical-align: -0.28em; color: var(--accent-strong); }
   .spinner [data-lucide],
   .spinner svg { width: 2rem; height: 2rem; color: var(--accent-strong); vertical-align: middle; }
+
+  /* --- Modern buttons ---------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.7rem 1.5rem;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(4px);
+  }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.24); }
+
+  /* --- Overlay nav (sits on top of a hero) ------------------------------- */
+  .nav {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem clamp(1rem, 4vw, 3rem);
+  }
+  .nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #fff;
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .nav-links a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.15s ease;
+  }
+  .nav-links a:hover { color: #fff; }
+
+  /* --- Hero -------------------------------------------------------------- */
+  .hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    padding: 7rem 1.5rem 4rem;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(20,28,40,0.45) 0%, rgba(20,28,40,0.35) 45%, rgba(20,28,40,0.62) 100%);
+    z-index: 1;
+  }
+  .hero > .hero-inner { position: relative; z-index: 2; }
+  .hero--full { min-height: 82vh; }
+  .hero--banner { min-height: 44vh; padding: 6rem 1.5rem 2.5rem; }
+  .hero-inner { max-width: 760px; }
+  .hero-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 1rem;
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: #fff;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 24px rgba(0,0,0,0.35);
+  }
+  .hero-sub {
+    margin: 1.1rem auto 0;
+    max-width: 560px;
+    font-size: 1.08rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.94);
+  }
+  .hero-actions { margin-top: 1.8rem; display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+  .hero-tabs { margin-top: 1.6rem; }
+
+  /* --- Content sections -------------------------------------------------- */
+  .section { padding: clamp(2.5rem, 6vw, 4.5rem) 1.5rem; }
+  .section-inner { max-width: 1040px; margin: 0 auto; }
+  .section--narrow .section-inner { max-width: 720px; }
+  .section-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent-strong);
+    text-align: center;
+    margin-bottom: 0.6rem;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3.5vw, 2.3rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    text-align: center;
+  }
+  .lead {
+    margin: 1rem auto 0;
+    max-width: 640px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
 }
+
+/* ----------------------------------------------------------------------------
+   5. Per-icon colors  (unlayered so `svg.lucide-*` [0,1,1] reliably wins over
+      container classes like .marker-icon / .day-icon [0,1,0], even those set
+      in each page's <style>). Each weather + UI icon gets its own hue for
+      at-a-glance differentiation. Medals (.medal-*) and quality dots
+      (.quality-dot) intentionally keep their own colors.
+   --------------------------------------------------------------------------*/
+svg.lucide-sun            { color: #6c5a13; }  /* warm gold (kept)      */
+svg.lucide-cloud-sun      { color: #b0801f; }  /* amber-tan             */
+svg.lucide-cloud          { color: #6b7787; }  /* slate grey            */
+svg.lucide-cloud-fog      { color: #8a8f98; }  /* light grey            */
+svg.lucide-cloud-drizzle  { color: #6f97c0; }  /* soft blue             */
+svg.lucide-cloud-rain     { color: #3f6fa3; }  /* rain blue             */
+svg.lucide-cloud-snow     { color: #5a91b8; }  /* cool blue             */
+svg.lucide-snowflake      { color: #4aa3c4; }  /* icy cyan              */
+svg.lucide-cloud-lightning{ color: #d99a1e; }  /* storm amber           */
+svg.lucide-wind           { color: #5f8a8f; }  /* teal-grey             */
+svg.lucide-circle-help    { color: #8a8f98; }  /* grey                  */
+svg.lucide-compass        { color: #5c7ba3; }  /* steel blue            */
+svg.lucide-trophy         { color: #c8912b; }  /* trophy gold           */
+svg.lucide-flame          { color: #c0492e; }  /* fire red              */
+svg.lucide-mountain-snow  { color: #4f6f7a; }  /* teal-steel            */
+svg.lucide-car            { color: #6a5e49; }  /* earthy driftwood      */
+svg.lucide-waves          { color: #1f6f78; }  /* lake teal             */
 
 

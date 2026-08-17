@@ -30,7 +30,7 @@ const fs = require('fs');
 // Config
 // ---------------------------------------------------------------------------
 const REPO_ROOT = path.resolve(__dirname, '..');
-const INDEX_HTML = path.join(REPO_ROOT, 'index.html');
+const INDEX_HTML = path.join(REPO_ROOT, 'sunshine.html');
 const VENDOR_DIR = path.join(__dirname, 'vendor');
 const SCREENSHOTS_DIR = path.join(REPO_ROOT, 'screenshots');
 const OUTPUT_FILE = path.join(SCREENSHOTS_DIR, 'preview.png');
