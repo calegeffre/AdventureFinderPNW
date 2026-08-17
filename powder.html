@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Page-specific: powder hero + resort cards */
-    /* HERO IMAGE — swap this URL to use your own photo */
+    /* HERO IMAGE - swap this URL to use your own photo */
     .hero--snow {
       background-image: url('images/snow-hero.jpg');
     }
@@ -233,7 +233,7 @@
           <div class="day-cell${isSnowy ? ' snowy' : ''}">
             <div class="day-label">${shortDayLabel(dateStr, i)}</div>
             <i data-lucide="${icon.icon}" class="day-icon"></i>
-            <div class="day-snow${snowLabel ? '' : ' none'}">${snowLabel || '—'}</div>
+            <div class="day-snow${snowLabel ? '' : ' none'}">${snowLabel || '·'}</div>
             <div class="day-temp">${hi}°/${lo}°</div>
           </div>
         `;

@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="dist/adventurefinder.css" />
   <style>
     /* Page-specific: sunshine map, legend, top-3 panel + AQI indicators */
-    /* HERO IMAGE — swap this URL to use your own photo */
+    /* HERO IMAGE - swap this URL to use your own photo */
     .hero--sun {
       background-image: url('images/sun-hero.jpg');
     }
@@ -369,7 +369,7 @@
     const SUNNY_MAJORITY_THRESHOLD = 0.5;
 
     // Returns true if at least SUNNY_MAJORITY_THRESHOLD of daylight hours
-    // (7 am–7 pm) for the given day have a partly-sunny-or-better code (0/1/2).
+    // (7 am-7 pm) for the given day have a partly-sunny-or-better code (0/1/2).
     // Falls back to the daily code when hourly data is unavailable.
     function hasSufficientSunshine(cityData, dayIndex) {
       if (cityData.hourlyData && cityData.hourlyData.weather_code) {
@@ -393,7 +393,7 @@
     }
 
     // Returns the dominant (most frequent) hourly weather code during daylight
-    // hours (7 am–7 pm) for the given day, or the daily code as fallback.
+    // hours (7 am-7 pm) for the given day, or the daily code as fallback.
     // Ties are broken by preferring the lower (sunnier) code.
     function dominantDaylightCode(cityData, dayIndex) {
       if (cityData.hourlyData && cityData.hourlyData.weather_code) {
@@ -466,15 +466,15 @@
       // If today is already Sat or Sun, show NEXT week's weekend
       let daysToSat, daysToSun;
       if (dayOfWeek === 6) {
-        // Today is Saturday — show next Saturday (7 days) and next Sunday (8 days)
+        // Today is Saturday - show next Saturday (7 days) and next Sunday (8 days)
         daysToSat = 7;
         daysToSun = 8;
       } else if (dayOfWeek === 0) {
-        // Today is Sunday — show next Saturday (6 days) and next Sunday (7 days)
+        // Today is Sunday - show next Saturday (6 days) and next Sunday (7 days)
         daysToSat = 6;
         daysToSun = 7;
       } else {
-        // Mon–Fri — show this coming Saturday and Sunday
+        // Mon-Fri - show this coming Saturday and Sunday
         daysToSat = 6 - dayOfWeek;
         daysToSun = 7 - dayOfWeek;
       }
