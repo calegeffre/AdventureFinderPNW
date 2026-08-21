@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "generated_at": "2026-08-19T00:00:00Z",
+  "source": "placeholder",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "sample-burn-zone-leavenworth",
+        "name": "Sample burn zone near Leavenworth",
+        "severity": "moderate",
+        "score": 0.81,
+        "observed_at": "2026-08-10T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-120.742, 47.629],
+            [-120.704, 47.629],
+            [-120.704, 47.603],
+            [-120.742, 47.603],
+            [-120.742, 47.629]
+          ]
+        ]
+      }
+    }
+  ]
+}

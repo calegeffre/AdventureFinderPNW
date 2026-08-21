@@ -2,7 +2,7 @@
 
 "Where can I find sun this weekend?", "Where's the best waves?", "I can ski or hike on Saturday, where should I go?"
 
-- Find the sun, waves or snow with interactive maps for the Pacific Northwest that shows you the weather forecasts, wave and snow reports for today, tomorrow nad the upcoming weeknd.
+- Find the sun, waves, snow, or trails with interactive maps for the Pacific Northwest — live weather forecasts, wave and snow reports, and a 3D trail explorer for today, tomorrow, and the upcoming weekend.
 
 ![SunshineFinder preview](https://github.com/user-attachments/assets/c00c158b-fa70-4fde-8f2b-9954866e29cc)
 
@@ -12,6 +12,8 @@
 - ☀️ Fetches live weather from the [Open-Meteo API](https://open-meteo.com/) and shows current conditions with emoji indicators
 - 📅 Lets you browse a 4-day forecast (Today, Tomorrow, and the next two days) via day tabs
 - 🎯 Ranks the nearest sunny cities and surfaces the **Top 3 Closest Sunny Spots** panel
+- 🔥 Can display active fires and repo-backed burn-zone polygons on the sunshine map
+- 🥾 **Trail Finder** — an interactive 3D map of 20+ Washington hikes with real USGS elevation terrain
 - 🔄 Auto-refreshes every 15 minutes so the data stays current
 
 ## Design system
@@ -39,11 +41,24 @@ SunshineFinder is built on top of these great open source projects:
 
 | Library | Version | What we use it for |
 |---|---|---|
-| [Leaflet](https://leafletjs.com/) | 1.9.4 | Interactive map rendering and city markers |
+| [Leaflet](https://leafletjs.com/) | 1.9.4 | Interactive map rendering and city markers (Sunshine, Snow, Waves pages) |
+| [MapLibre GL JS](https://maplibre.org/) | 4.7.1 | 3D WebGL map rendering with terrain elevation on the Trail Finder |
 | [Open-Meteo API](https://open-meteo.com/) | — | Free, no-auth weather forecast data (WMO weather codes, temperature) |
 | [CARTO](https://carto.com/) / [OpenStreetMap](https://www.openstreetmap.org/) | — | Dark basemap tiles displayed inside the Leaflet map |
+| [OpenFreeMap](https://openfreemap.org/) | — | Vector map tiles powering the Trail Finder basemap (OpenStreetMap data, no API key) |
+| [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) | — | Real USGS/SRTM elevation data encoded as Terrarium RGB PNG tiles, used for 3D terrain on the Trail Finder. Hosted free on Amazon S3 as an open dataset — no API key required |
 | [Tailwind CSS](https://tailwindcss.com/) | ^4.3 | Design-system tokens + compiled stylesheet (`dist/adventurefinder.css`) |
 | [Playwright](https://playwright.dev/) | ^1.58.2 | Headless browser automation used to generate the screenshot above |
+
+## Burn zones pipeline
+
+Burn zones are now wired as a **repo-backed GeoJSON layer** loaded from `data/burn-zones/latest.geojson`.
+
+- The Sunshine map can toggle **Show burn zones** and render polygons with severity/confidence metadata.
+- A scheduled GitHub Actions workflow at `.github/workflows/burn-zones.yml` regenerates that GeoJSON and commits it back into the repository.
+- The current generator in `scripts/generate-burn-zones.js` is a placeholder scaffold intended to be replaced by a real satellite-scene + OlmoEarth inference pipeline.
+
+This repo storage approach is the simplest place to start because it keeps deployment static: GitHub Pages can serve the generated GeoJSON directly with no separate database or API.
 
 ## Generating screenshots with Playwright
 

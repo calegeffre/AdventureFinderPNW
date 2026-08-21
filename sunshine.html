@@ -16,6 +16,9 @@
     /* HERO IMAGE - swap this URL to use your own photo */
     .hero--sun {
       background-image: url('images/sun-hero.jpg');
+      background-position: center top;
+      min-height: 28vh !important;
+      padding-bottom: 1.5rem !important;
     }
     .map-toolbar {
       display: flex;
@@ -117,6 +120,15 @@
     .marker-icon { width: 2rem; height: 2rem; color: var(--color-umber); filter: drop-shadow(0 1px 2px rgba(255,255,255,0.7)); }
     .marker-sunny { color: var(--color-sun-ink); filter: drop-shadow(0 0 6px var(--color-sun)); }
     .marker-fire { color: var(--color-alert); width: 1.8rem; height: 1.8rem; }
+    .marker-burn-zone {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 999px;
+      background: rgba(120, 53, 15, 0.72);
+      border: 2px solid rgba(251, 191, 36, 0.95);
+      box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.2);
+    }
     .marker-aqi {
       font-size: 0.75rem;
       font-weight: 700;
@@ -166,6 +178,7 @@
       <div class="nav-links">
         <a href="powder.html" class="nav-hide"><i data-lucide="cloud-snow"></i> Snow</a>
         <a href="waves.html" class="nav-hide"><i data-lucide="waves"></i> Waves</a>
+        <a href="trails.html" class="nav-hide"><i data-lucide="footprints"></i> Trails</a>
         <a href="index.html" class="btn btn-ghost">Home</a>
       </div>
     </nav>
@@ -452,10 +465,13 @@
     // Track current markers and selected day
     let markers = [];
     let fireMarkers = [];
+    let burnZoneLayer = null;
     let activeFireData = [];
+    let burnZoneData = null;
     let selectedDayIndex = 0;
     let showAqi = false;
     let showFires = false;
+    let showBurnZones = false;
     
     // Calculate days needed for forecast (up to next Sunday)
     function calculateForecastDays() {
@@ -537,8 +553,12 @@
           <div class="legend-item"><i data-lucide="cloud-rain" class="legend-icon"></i> Rain</div>
           <div class="legend-item"><i data-lucide="cloud-snow" class="legend-icon"></i> Snow</div>
           <div class="legend-item"><i data-lucide="flame" class="legend-icon"></i> Active Fire</div>
+          <div class="legend-item"><span class="marker-burn-zone"></span> Burn Zone</div>
           <div class="legend-toggle">
             <label><input type="checkbox" id="toggleFires"> Show fires</label>
+          </div>
+          <div class="legend-toggle">
+            <label><input type="checkbox" id="toggleBurnZones"> Show burn zones</label>
           </div>
           <div class="legend-toggle">
             <label><input type="checkbox" id="toggleAqi"> Show AQI</label>
@@ -731,6 +751,13 @@
       fireMarkers = [];
     }
 
+    function clearBurnZoneLayer() {
+      if (burnZoneLayer) {
+        map.removeLayer(burnZoneLayer);
+        burnZoneLayer = null;
+      }
+    }
+
     function renderFireMarkers() {
       clearFireMarkers();
       if (!showFires) return;
@@ -748,6 +775,44 @@
         fireMarkers.push(marker);
       });
       refreshIcons();
+    }
+
+    function burnZoneStyle(feature) {
+      const severity = feature?.properties?.severity || 'unknown';
+      const styles = {
+        low: { color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.2 },
+        moderate: { color: '#f97316', fillColor: '#f97316', fillOpacity: 0.24 },
+        high: { color: '#b45309', fillColor: '#b45309', fillOpacity: 0.28 },
+        unknown: { color: '#78350f', fillColor: '#78350f', fillOpacity: 0.18 }
+      };
+      return {
+        weight: 2,
+        ...(styles[severity] || styles.unknown)
+      };
+    }
+
+    function renderBurnZones() {
+      clearBurnZoneLayer();
+      if (!showBurnZones || !burnZoneData) return;
+
+      burnZoneLayer = L.geoJSON(burnZoneData, {
+        style: burnZoneStyle,
+        onEachFeature(feature, layer) {
+          const props = feature.properties || {};
+          const title = props.name || 'Burn zone';
+          const severity = props.severity || 'Unknown';
+          const observedAt = props.observed_at ? new Date(props.observed_at).toLocaleDateString() : 'Unknown';
+          const score = Number.isFinite(props.score) ? Number(props.score).toFixed(2) : 'N/A';
+          layer.bindPopup(`
+            <div class="city-popup">
+              <h3>${title}</h3>
+              <div class="conditions">Burn severity: ${severity}</div>
+              <div class="temp">Observed: ${observedAt}</div>
+              <div class="temp">Confidence: ${score}</div>
+            </div>
+          `);
+        }
+      }).addTo(map);
     }
 
     function isInFireSearchBounds(lat, lon) {
@@ -806,6 +871,19 @@
       } catch (error) {
         console.error('Failed to fetch active wildfires:', error);
         activeFireData = [];
+      }
+    }
+
+    async function fetchBurnZones() {
+      try {
+        const response = await fetch('data/burn-zones/latest.geojson');
+        if (!response.ok) {
+          throw new Error(`Status ${response.status}`);
+        }
+        burnZoneData = await response.json();
+      } catch (error) {
+        console.error('Failed to fetch burn zones:', error);
+        burnZoneData = null;
       }
     }
 
@@ -951,6 +1029,11 @@
         await fetchActiveFires();
         renderFireMarkers();
       }
+
+      if (showBurnZones) {
+        await fetchBurnZones();
+        renderBurnZones();
+      }
     }
     
     // Tab click handlers
@@ -976,6 +1059,7 @@
     });
 
     const firesToggle = document.getElementById('toggleFires');
+    const burnZonesToggle = document.getElementById('toggleBurnZones');
     const aqiToggle = document.getElementById('toggleAqi');
 
     if (firesToggle) {
@@ -986,6 +1070,17 @@
           await fetchActiveFires();
         }
         renderFireMarkers();
+      });
+    }
+
+    if (burnZonesToggle) {
+      showBurnZones = burnZonesToggle.checked;
+      burnZonesToggle.addEventListener('change', async () => {
+        showBurnZones = burnZonesToggle.checked;
+        if (showBurnZones && !burnZoneData) {
+          await fetchBurnZones();
+        }
+        renderBurnZones();
       });
     }
 

@@ -186,6 +186,39 @@ function buildMockWeather(url) {
     });
   });
 
+  // ---- Route: Burn zones GeoJSON ------------------------------------------
+  await page.route(/data\/burn-zones\/latest\.geojson$/, route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/geo+json',
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {
+              id: 'mock-burn-zone',
+              name: 'Mock burn zone',
+              severity: 'moderate',
+              score: 0.84,
+              observed_at: '2026-08-10T00:00:00Z'
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-120.742, 47.629],
+                [-120.704, 47.629],
+                [-120.704, 47.603],
+                [-120.742, 47.603],
+                [-120.742, 47.629]
+              ]]
+            }
+          }
+        ]
+      }),
+    });
+  });
+
   // ---- Load index.html via file:// ----------------------------------------
   await page.goto('file://' + INDEX_HTML);
 

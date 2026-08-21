@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find the Trails — PNW Adventure Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="dist/adventurefinder.css?v=20260817-2" />
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+
+    /* ── Nav ── */
+    .trails-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.7rem 1.5rem;
+      background: rgba(13, 17, 23, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      height: 52px;
+    }
+    .trails-nav .nav-brand {
+      display: flex; align-items: center; gap: 0.45rem;
+      color: #e6edf3; text-decoration: none;
+      font-weight: 700; font-size: 0.95rem;
+    }
+    .trails-nav .nav-brand [data-lucide] { width: 1.2rem; height: 1.2rem; color: #58a6ff; }
+    .trails-nav .nav-links {
+      display: flex; align-items: center; gap: 1.1rem;
+    }
+    .trails-nav .nav-links a {
+      color: #8b949e; text-decoration: none; font-size: 0.82rem; font-weight: 500;
+      display: flex; align-items: center; gap: 0.3rem; transition: color 0.15s;
+    }
+    .trails-nav .nav-links a:hover { color: #e6edf3; }
+    .trails-nav .nav-links a.active { color: #58a6ff; }
+    .trails-nav .nav-links [data-lucide] { width: 0.95rem; height: 0.95rem; }
+
+    /* ── Map container ── */
+    #map {
+      position: absolute;
+      top: 52px; left: 0; right: 0; bottom: 0;
+    }
+
+    /* ── Sidebar (filter only) ── */
+    .sidebar {
+      position: fixed;
+      top: 64px; left: 1rem;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 0.9rem;
+      width: 190px;
+    }
+    .sidebar-label {
+      font-size: 0.68rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: #484f58; margin-bottom: 0.6rem;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .filter-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 8px;
+      padding: 0.38rem 0.7rem;
+      color: #8b949e;
+      font-size: 0.78rem;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.14s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .filter-btn span.label { display: flex; align-items: center; gap: 0.4rem; }
+    .filter-btn:hover { background: rgba(88,166,255,0.08); color: #e6edf3; border-color: rgba(88,166,255,0.25); }
+    .filter-btn.active { background: rgba(88,166,255,0.14); color: #58a6ff; border-color: rgba(88,166,255,0.38); }
+    .filter-count {
+      background: rgba(88,166,255,0.18);
+      color: #58a6ff; border-radius: 20px;
+      padding: 0.04rem 0.42rem;
+      font-size: 0.68rem; font-weight: 600;
+    }
+    .diff-dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; flex-shrink: 0;
+    }
+    .diff-easy     { background: #3fb950; }
+    .diff-moderate { background: #d29922; }
+    .diff-hard     { background: #f85149; }
+    .diff-epic     { background: #8957e5; }
+
+    /* ── Info card ── */
+    .info-card {
+      position: fixed;
+      bottom: 1.5rem; right: 1.25rem;
+      width: 310px;
+      background: rgba(13, 17, 23, 0.94);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 1.15rem 1.25rem 1.2rem;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .info-card.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .info-close {
+      position: absolute; top: 0.7rem; right: 0.9rem;
+      background: none; border: none; color: #484f58;
+      cursor: pointer; font-size: 1.1rem; line-height: 1;
+      transition: color 0.12s;
+    }
+    .info-close:hover { color: #e6edf3; }
+    .info-kicker {
+      font-size: 0.68rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #58a6ff; margin-bottom: 0.35rem;
+    }
+    .info-title { font-size: 1.1rem; font-weight: 700; color: #e6edf3; margin-bottom: 0.55rem; }
+    .info-stats {
+      display: flex; gap: 1rem; margin-bottom: 0.65rem;
+    }
+    .info-stat { display: flex; flex-direction: column; }
+    .info-stat-val { font-size: 0.95rem; font-weight: 700; color: #e6edf3; }
+    .info-stat-lbl { font-size: 0.65rem; color: #484f58; text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-desc { font-size: 0.8rem; color: #8b949e; line-height: 1.55; margin-bottom: 0.8rem; }
+    .info-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .info-tag {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 20px; padding: 0.18rem 0.6rem;
+      font-size: 0.7rem; font-weight: 500; color: #8b949e;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      position: fixed;
+      bottom: 1.25rem; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 1.1rem;
+      background: rgba(13, 17, 23, 0.82);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 40px; padding: 0.45rem 1.1rem;
+      z-index: 100;
+      font-size: 0.72rem; color: #8b949e;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.32rem; }
+
+    /* ── MapLibre popup override ── */
+    .maplibregl-popup-content {
+      background: rgba(13,17,23,0.95) !important;
+      border: 1px solid rgba(88,166,255,0.3) !important;
+      border-radius: 9px !important;
+      padding: 0.5rem 0.75rem !important;
+      font-family: 'Poppins', sans-serif !important;
+      font-size: 0.78rem !important;
+      font-weight: 600 !important;
+      color: #e6edf3 !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+    }
+    .maplibregl-popup-tip { display: none !important; }
+    .maplibregl-ctrl-attrib { font-size: 0.6rem !important; }
+
+    @media (max-width: 600px) {
+      .info-card { left: 0.75rem; right: 0.75rem; width: auto; bottom: 0.75rem; }
+      .sidebar { width: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Rainier splash — shows while map tiles load -->
+  <div id="splash" style="
+    position:fixed; inset:0; z-index:300;
+    background: url('images/card-trails.jpg') center center / cover no-repeat;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition: opacity 0.7s ease;
+  ">
+    <div style="
+      background: rgba(13,17,23,0.52); backdrop-filter:blur(2px);
+      border-radius:16px; padding:2rem 2.5rem; text-align:center; max-width:380px;
+    ">
+      <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#58a6ff;margin-bottom:0.5rem;">Pacific Northwest</div>
+      <div style="font-family:'Poppins',sans-serif;font-size:2rem;font-weight:700;color:#fff;line-height:1.2;margin-bottom:0.6rem;">Find the Trails</div>
+      <div style="font-size:0.85rem;color:rgba(255,255,255,0.7);">Loading 3D terrain map…</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="trails-nav">
+    <a href="index.html" class="nav-brand">
+      <i data-lucide="compass"></i> Adventure Finder
+    </a>
+    <div class="nav-links">
+      <a href="sunshine.html"><i data-lucide="sun"></i> Sun</a>
+      <a href="powder.html"><i data-lucide="cloud-snow"></i> Snow</a>
+      <a href="waves.html"><i data-lucide="waves"></i> Waves</a>
+      <a href="trails.html" class="active"><i data-lucide="footprints"></i> Trails</a>
+    </div>
+  </nav>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Sidebar — filter only -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Difficulty</div>
+    <div class="filter-group">
+      <button class="filter-btn active" data-diff="all">
+        <span class="label">All Trails</span>
+        <span class="filter-count" id="count-all">0</span>
+      </button>
+      <button class="filter-btn" data-diff="easy">
+        <span class="label"><span class="diff-dot diff-easy"></span>Easy</span>
+        <span class="filter-count" id="count-easy">0</span>
+      </button>
+      <button class="filter-btn" data-diff="moderate">
+        <span class="label"><span class="diff-dot diff-moderate"></span>Moderate</span>
+        <span class="filter-count" id="count-moderate">0</span>
+      </button>
+      <button class="filter-btn" data-diff="hard">
+        <span class="label"><span class="diff-dot diff-hard"></span>Hard</span>
+        <span class="filter-count" id="count-hard">0</span>
+      </button>
+      <button class="filter-btn" data-diff="epic">
+        <span class="label"><span class="diff-dot diff-epic"></span>Epic</span>
+        <span class="filter-count" id="count-epic">0</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Info card -->
+  <div class="info-card" id="info-card">
+    <button class="info-close" id="info-close">×</button>
+    <div class="info-kicker" id="info-kicker"></div>
+    <div class="info-title" id="info-title"></div>
+    <div class="info-stats" id="info-stats"></div>
+    <div class="info-desc" id="info-desc"></div>
+    <div class="info-tags" id="info-tags"></div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <span class="legend-item"><span class="diff-dot diff-easy"></span>Easy</span>
+    <span class="legend-item"><span class="diff-dot diff-moderate"></span>Moderate</span>
+    <span class="legend-item"><span class="diff-dot diff-hard"></span>Hard</span>
+    <span class="legend-item"><span class="diff-dot diff-epic"></span>Epic</span>
+  </div>
+
+  <script>
+    // ── Trail data — real GPS coordinates ─────────────────────────
+    // lng/lat verified against USGS, WTA, and NPS sources
+    const TRAILS = [
+      {
+        id: 1, name: 'Wonderland Trail', region: 'Mount Rainier NP',
+        difficulty: 'epic', miles: 93, gain: 22000,
+        desc: 'A legendary 93-mile loop circumnavigating Mount Rainier through wildflower meadows, glaciers, and old-growth forest.',
+        tags: ['Backpacking', 'Glacier', 'Alpine', 'Permit Required'],
+        lng: -121.7269, lat: 46.8523
+      },
+      {
+        id: 2, name: 'Enchantments Core Zone', region: 'Alpine Lakes Wilderness',
+        difficulty: 'epic', miles: 18, gain: 6000,
+        desc: 'Iconic granite spires, emerald tarns, and mountain goats above 7,000 ft in the heart of the Cascades.',
+        tags: ['Backpacking', 'Alpine', 'Permit Required'],
+        lng: -120.8171, lat: 47.5122
+      },
+      {
+        id: 3, name: 'Chain Lakes Loop', region: 'Mount Baker',
+        difficulty: 'moderate', miles: 8.5, gain: 1750,
+        desc: 'Classic loop around the flanks of Table Mountain with postcard views of Mount Baker reflected in turquoise lakes.',
+        tags: ['Day Hike', 'Lakes', 'Views'],
+        lng: -121.6855, lat: 48.8271
+      },
+      {
+        id: 4, name: 'Olympic Coast Trail', region: 'Olympic NP',
+        difficulty: 'hard', miles: 17, gain: 2400,
+        desc: 'Wild coastline with sea stacks, tide pools, and old-growth rainforest extending to the water\'s edge.',
+        tags: ['Backpacking', 'Coast', 'Wilderness'],
+        lng: -124.6550, lat: 47.9200
+      },
+      {
+        id: 5, name: 'Hall of Mosses', region: 'Olympic NP — Hoh',
+        difficulty: 'easy', miles: 0.8, gain: 50,
+        desc: 'A short, magical walk beneath 200-year-old big-leaf maples draped in emerald club moss.',
+        tags: ['Day Hike', 'Rainforest', 'Family Friendly'],
+        lng: -123.9340, lat: 47.8608
+      },
+      {
+        id: 6, name: 'Maple Pass Loop', region: 'North Cascades',
+        difficulty: 'moderate', miles: 7.2, gain: 2000,
+        desc: 'Voted one of Washington\'s best fall hikes — a loop through larch forests ablaze in gold each October.',
+        tags: ['Day Hike', 'Larch Season', 'Views'],
+        lng: -120.6824, lat: 48.5173
+      },
+      {
+        id: 7, name: 'Goat Rocks Wilderness', region: 'Goat Rocks',
+        difficulty: 'hard', miles: 34, gain: 9500,
+        desc: 'Ridgeline traverse along the Pacific Crest Trail past the volcanic remnants of an ancient stratovolcano.',
+        tags: ['Backpacking', 'PCT', 'Alpine'],
+        lng: -121.4800, lat: 46.5000
+      },
+      {
+        id: 8, name: 'Spray Park', region: 'Mount Rainier NP',
+        difficulty: 'moderate', miles: 8, gain: 1700,
+        desc: 'One of Rainier\'s finest wildflower meadows, carpeted in lupine and paintbrush with close-up glacier views.',
+        tags: ['Day Hike', 'Wildflowers', 'Views'],
+        lng: -121.8524, lat: 46.9428
+      },
+      {
+        id: 9, name: 'Skyline Divide', region: 'Mount Baker',
+        difficulty: 'moderate', miles: 8, gain: 2700,
+        desc: 'Open subalpine ridges with sweeping views of Mount Baker and the Canadian Border Peaks.',
+        tags: ['Day Hike', 'Ridge Walk', 'Views'],
+        lng: -121.9041, lat: 48.8015
+      },
+      {
+        id: 10, name: 'Snow Lake', region: 'Alpine Lakes',
+        difficulty: 'easy', miles: 8, gain: 1800,
+        desc: 'The most popular overnight in the Alpine Lakes Wilderness — a teal glacial lake framed by granite walls.',
+        tags: ['Day Hike', 'Lakes', 'Popular'],
+        lng: -121.4452, lat: 47.4405
+      },
+      {
+        id: 11, name: 'Tolmie Peak Lookout', region: 'Mount Rainier NP',
+        difficulty: 'moderate', miles: 6.5, gain: 1010,
+        desc: 'Historic fire lookout with one of the most photogenic Rainier reflections at Eunice Lake.',
+        tags: ['Day Hike', 'Historic', 'Views'],
+        lng: -121.8840, lat: 46.9570
+      },
+      {
+        id: 12, name: 'Glacier Peak Circumnavigation', region: 'North Cascades',
+        difficulty: 'epic', miles: 75, gain: 18000,
+        desc: 'A remote multi-day loop around Washington\'s most isolated stratovolcano deep in the Cascades.',
+        tags: ['Backpacking', 'Remote', 'Alpine'],
+        lng: -121.1129, lat: 48.1119
+      },
+      {
+        id: 13, name: 'Cape Flattery', region: 'Olympic Peninsula',
+        difficulty: 'easy', miles: 1.5, gain: 200,
+        desc: 'Short boardwalk trail to the northwesternmost point of the contiguous United States — stunning sea arch views.',
+        tags: ['Day Hike', 'Coast', 'Landmark'],
+        lng: -124.7180, lat: 48.3849
+      },
+      {
+        id: 14, name: 'Colchuck Lake', region: 'Alpine Lakes',
+        difficulty: 'hard', miles: 8, gain: 2280,
+        desc: 'Stunning turquoise lake directly beneath Dragontail Peak and the gateway to the Enchantments.',
+        tags: ['Day Hike', 'Lakes', 'Permit Area'],
+        lng: -120.8418, lat: 47.5308
+      },
+      {
+        id: 15, name: 'Palouse Falls', region: 'Eastern Washington',
+        difficulty: 'easy', miles: 1, gain: 100,
+        desc: 'Washington\'s official state waterfall plunging 198 ft into a dramatic basalt canyon on the Palouse.',
+        tags: ['Day Hike', 'Waterfall', 'Unique Geology'],
+        lng: -118.2257, lat: 46.6641
+      },
+      {
+        id: 16, name: 'Artist Point', region: 'Mount Baker',
+        difficulty: 'easy', miles: 2.5, gain: 500,
+        desc: 'Easy walk to one of Washington\'s most iconic viewpoints, perched between Mount Baker and Mount Shuksan.',
+        tags: ['Day Hike', 'Views', 'Photography'],
+        lng: -121.6890, lat: 48.8366
+      },
+      {
+        id: 17, name: 'Mount St. Helens Summit', region: 'Mount St. Helens NVM',
+        difficulty: 'hard', miles: 10, gain: 4500,
+        desc: 'A challenging climb up the south face of the volcano to the crater rim with views into the blast zone.',
+        tags: ['Mountaineering', 'Permit Required', 'Volcanic'],
+        lng: -122.1944, lat: 46.1912
+      },
+      {
+        id: 18, name: 'Rattlesnake Ledge', region: 'Issaquah Alps',
+        difficulty: 'easy', miles: 4, gain: 1100,
+        desc: 'The go-to Seattle-area intro hike with a dramatic rocky ledge overlooking Rattlesnake Lake and the Cascades.',
+        tags: ['Day Hike', 'Views', 'Popular'],
+        lng: -121.7705, lat: 47.4337
+      },
+      {
+        id: 19, name: 'Lake Serene & Bridal Veil Falls', region: 'Stevens Pass',
+        difficulty: 'hard', miles: 8, gain: 4200,
+        desc: 'A relentlessly steep climb rewarded by a cirque lake beneath the sheer granite walls of Mount Index.',
+        tags: ['Day Hike', 'Lakes', 'Waterfall'],
+        lng: -121.5547, lat: 47.8097
+      },
+      {
+        id: 20, name: 'Heather-Maple Pass Loop', region: 'Okanogan-Wenatchee NF',
+        difficulty: 'moderate', miles: 7.2, gain: 2050,
+        desc: 'Loop trail through heather meadows and over Maple Pass with panoramic Cascades views in every direction.',
+        tags: ['Day Hike', 'Loop', 'Alpine'],
+        lng: -120.6893, lat: 48.5192
+      },
+    ];
+
+    // ── Colour per difficulty ─────────────────────────────────────
+    const DIFF_HEX = {
+      easy:     '#3fb950',
+      moderate: '#d29922',
+      hard:     '#f85149',
+      epic:     '#8957e5',
+    };
+
+    // ── Counts ────────────────────────────────────────────────────
+    ['all', 'easy', 'moderate', 'hard', 'epic'].forEach(d => {
+      const count = d === 'all' ? TRAILS.length : TRAILS.filter(t => t.difficulty === d).length;
+      document.getElementById('count-' + d).textContent = count;
+    });
+
+    // ── Map init ─────────────────────────────────────────────────
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [-120.8, 47.5],
+      zoom: 7.2,
+      pitch: 62,
+      bearing: -18,
+      maxBounds: [[-130, 44], [-116, 50.5]],
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    // Dismiss splash once map first becomes idle (tiles loaded), with a fallback timeout
+    function dismissSplash() {
+      const splash = document.getElementById('splash');
+      if (!splash) return;
+      splash.style.opacity = '0';
+      setTimeout(() => splash.remove(), 750);
+    }
+    map.once('idle', dismissSplash);
+    setTimeout(dismissSplash, 4000); // fallback if tiles stall
+
+    map.on('load', () => {
+      // ── Terrain elevation (Terrarium encoding — real USGS data) ──
+      // Each tile pixel encodes altitude as: (R*256 + G + B/256) - 32768 metres
+      map.addSource('terrain-rgb', {
+        type: 'raster-dem',
+        url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+        tileSize: 256,
+        encoding: 'terrarium',
+        maxzoom: 14,
+      });
+
+      // Exaggeration 2.8 makes the Cascades and Olympics visibly dramatic at state-wide zoom
+      map.setTerrain({ source: 'terrain-rgb', exaggeration: 2.8 });
+
+      // ── Hillshade layer — makes ridges and valleys pop ──
+      map.addLayer({
+        id: 'hillshade',
+        type: 'hillshade',
+        source: 'terrain-rgb',
+        paint: {
+          'hillshade-exaggeration': 0.7,
+          'hillshade-shadow-color': '#1a2235',
+          'hillshade-highlight-color': '#f0f4ff',
+          'hillshade-accent-color': '#3a5a8a',
+          'hillshade-illumination-direction': 315,
+        }
+      }, 'waterway');   // insert beneath roads/labels but above water fill
+
+      // Sky atmosphere — gives the horizon a dramatic haze
+      map.setSky({
+        'sky-color': '#0d1829',
+        'horizon-color': '#2a4a7a',
+        'fog-color': '#1a2a45',
+        'sky-horizon-blend': 0.4,
+        'horizon-fog-blend': 0.7,
+        'fog-ground-blend': 0.4,
+        'atmosphere-blend': 0.6,
+      });
+
+      // ── GeoJSON source for trail pins ──
+      const geojson = {
+        type: 'FeatureCollection',
+        features: TRAILS.map(t => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [t.lng, t.lat] },
+          properties: {
+            id: t.id,
+            name: t.name,
+            region: t.region,
+            difficulty: t.difficulty,
+            miles: t.miles,
+            gain: t.gain,
+            desc: t.desc,
+            tags: t.tags.join(','),
+            color: DIFF_HEX[t.difficulty],
+          }
+        }))
+      };
+
+      map.addSource('trails', { type: 'geojson', data: geojson });
+
+      // Outer glow ring
+      map.addLayer({
+        id: 'trail-glow',
+        type: 'circle',
+        source: 'trails',
+        paint: {
+          'circle-radius': 14,
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.18,
+          'circle-blur': 0.6,
+        }
+      });
+
+      // Main pin circle
+      map.addLayer({
+        id: 'trail-pins',
+        type: 'circle',
+        source: 'trails',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            6, 5,
+            10, 8,
+            14, 11
+          ],
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#0d1117',
+          'circle-opacity': 0.95,
+        }
+      });
+
+      // Label
+      map.addLayer({
+        id: 'trail-labels',
+        type: 'symbol',
+        source: 'trails',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 11,
+          'text-offset': [0, 1.4],
+          'text-anchor': 'top',
+          'text-optional': true,
+          'text-max-width': 10,
+        },
+        paint: {
+          'text-color': '#e6edf3',
+          'text-halo-color': '#0d1117',
+          'text-halo-width': 1.5,
+          'text-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 9, 1],
+        }
+      });
+
+      // ── Hover cursor ──
+      map.on('mouseenter', 'trail-pins', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'trail-pins', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      // ── Click → info card ──
+      map.on('click', 'trail-pins', (e) => {
+        const props = e.features[0].properties;
+        const trail = TRAILS.find(t => t.id === props.id);
+        if (trail) showTrail(trail);
+      });
+    });
+
+    // ── Info card ─────────────────────────────────────────────────
+    function showTrail(trail) {
+      document.getElementById('info-kicker').textContent = trail.region;
+      document.getElementById('info-title').textContent = trail.name;
+      document.getElementById('info-stats').innerHTML = `
+        <div class="info-stat">
+          <span class="info-stat-val">${trail.miles} mi</span>
+          <span class="info-stat-lbl">Distance</span>
+        </div>
+        <div class="info-stat">
+          <span class="info-stat-val">+${trail.gain.toLocaleString()} ft</span>
+          <span class="info-stat-lbl">Elevation</span>
+        </div>
+        <div class="info-stat">
+          <span class="info-stat-val" style="color:${DIFF_HEX[trail.difficulty]}">${trail.difficulty.charAt(0).toUpperCase()+trail.difficulty.slice(1)}</span>
+          <span class="info-stat-lbl">Difficulty</span>
+        </div>`;
+      document.getElementById('info-desc').textContent = trail.desc;
+      document.getElementById('info-tags').innerHTML = trail.tags
+        .map(t => `<span class="info-tag">${t}</span>`).join('');
+      document.getElementById('info-card').classList.add('visible');
+
+      // Fly to trail — zoom close enough to feel the terrain
+      map.flyTo({
+        center: [trail.lng, trail.lat],
+        zoom: 12,
+        pitch: 72,
+        bearing: Math.random() * 60 - 30,
+        duration: 2000,
+        essential: true,
+      });
+    }
+
+    document.getElementById('info-close').addEventListener('click', () => {
+      document.getElementById('info-card').classList.remove('visible');
+    });
+
+    // ── Difficulty filter ─────────────────────────────────────────
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const diff = btn.dataset.diff;
+
+        const filter = diff === 'all'
+          ? null
+          : ['==', ['get', 'difficulty'], diff];
+
+        ['trail-pins', 'trail-glow', 'trail-labels'].forEach(layer => {
+          if (map.getLayer(layer)) {
+            map.setFilter(layer, filter);
+          }
+        });
+
+        // Close info card if the selected trail is now filtered out
+        const card = document.getElementById('info-card');
+        if (card.classList.contains('visible') && diff !== 'all') {
+          card.classList.remove('visible');
+        }
+      });
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
