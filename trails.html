@@ -107,6 +107,23 @@
     .diff-moderate { background: #d29922; }
     .diff-hard     { background: #f85149; }
     .diff-epic     { background: #8957e5; }
+    .model-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(255,255,255,0.09);
+      color: #8b949e;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .model-toggle input {
+      width: 1rem;
+      height: 1rem;
+      accent-color: #58a6ff;
+      cursor: pointer;
+    }
 
     /* ── Info card ── */
     .info-card {
@@ -248,6 +265,10 @@
         <span class="filter-count" id="count-epic">0</span>
       </button>
     </div>
+    <label class="model-toggle">
+      <input type="checkbox" id="show-models" checked>
+      <span>Show models</span>
+    </label>
   </aside>
 
   <!-- Info card -->
@@ -268,7 +289,18 @@
     <span class="legend-item"><span class="diff-dot diff-epic"></span>Epic</span>
   </div>
 
-  <script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.168.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.168.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
     // ── Trail data — real GPS coordinates ─────────────────────────
     // lng/lat verified against USGS, WTA, and NPS sources
     const TRAILS = [
@@ -421,6 +453,7 @@
       hard:     '#f85149',
       epic:     '#8957e5',
     };
+    const MODEL_LAYER_IDS = ['rainier-model'];
 
     // ── Counts ────────────────────────────────────────────────────
     ['all', 'easy', 'moderate', 'hard', 'epic'].forEach(d => {
@@ -566,6 +599,123 @@
         }
       });
 
+      // ── Rainier GLB custom 3D layer anchored at the summit ──
+      // Add this after the trail layers so a model-loading failure cannot
+      // prevent markers and labels from being created.
+      const rainierOrigin = [-121.7603, 46.8523];
+      const rainierAltitude = 2000;
+      const rainierSizeMeters = 12000;
+      const rainierCoordinate = maplibregl.MercatorCoordinate.fromLngLat(
+        rainierOrigin,
+        rainierAltitude
+      );
+      const rainierModelTransform = {
+        translateX: rainierCoordinate.x,
+        translateY: rainierCoordinate.y,
+        translateZ: rainierCoordinate.z,
+        rotateX: Math.PI / 2,
+        rotateY: 0,
+        rotateZ: 0,
+        scale: rainierCoordinate.meterInMercatorCoordinateUnits() * rainierSizeMeters,
+      };
+
+      const rainierLayer = {
+        id: 'rainier-model',
+        type: 'custom',
+        renderingMode: '3d',
+
+        onAdd: function (customMap, gl) {
+          this.map = customMap;
+          this.camera = new THREE.Camera();
+          this.scene = new THREE.Scene();
+
+          const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+          keyLight.position.set(0, -70, 100).normalize();
+          this.scene.add(keyLight);
+
+          const fillLight = new THREE.DirectionalLight(0x9fc5ff, 1.4);
+          fillLight.position.set(60, 80, 80).normalize();
+          this.scene.add(fillLight);
+          this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+
+          new GLTFLoader().load(
+            'models/Rainier.glb',
+            (gltf) => {
+              gltf.scene.traverse((object) => {
+                if (!object.isMesh) return;
+                const materials = Array.isArray(object.material)
+                  ? object.material
+                  : [object.material];
+                materials.forEach((material) => {
+                  if (!material) return;
+                  material.metalness = 0;
+                  material.roughness = 0.9;
+                  material.needsUpdate = true;
+                });
+              });
+              this.scene.add(gltf.scene);
+              this.map.triggerRepaint();
+            },
+            undefined,
+            (error) => console.error('Failed to load models/Rainier.glb', error)
+          );
+
+          this.renderer = new THREE.WebGLRenderer({
+            canvas: customMap.getCanvas(),
+            context: gl,
+            antialias: true,
+          });
+          this.renderer.autoClear = false;
+        },
+
+        render: function (gl, matrix) {
+          const rotationX = new THREE.Matrix4().makeRotationAxis(
+            new THREE.Vector3(1, 0, 0),
+            rainierModelTransform.rotateX
+          );
+          const rotationY = new THREE.Matrix4().makeRotationAxis(
+            new THREE.Vector3(0, 1, 0),
+            rainierModelTransform.rotateY
+          );
+          const rotationZ = new THREE.Matrix4().makeRotationAxis(
+            new THREE.Vector3(0, 0, 1),
+            rainierModelTransform.rotateZ
+          );
+          const mapMatrix = new THREE.Matrix4().fromArray(matrix);
+          const modelMatrix = new THREE.Matrix4()
+            .makeTranslation(
+              rainierModelTransform.translateX,
+              rainierModelTransform.translateY,
+              rainierModelTransform.translateZ
+            )
+            .scale(new THREE.Vector3(
+              rainierModelTransform.scale,
+              -rainierModelTransform.scale,
+              rainierModelTransform.scale
+            ))
+            .multiply(rotationX)
+            .multiply(rotationY)
+            .multiply(rotationZ);
+
+          this.camera.projectionMatrix = mapMatrix.multiply(modelMatrix);
+          this.renderer.resetState();
+          this.renderer.render(this.scene, this.camera);
+          this.map.triggerRepaint();
+        },
+      };
+
+      try {
+        map.addLayer(rainierLayer);
+        const modelsVisible = document.getElementById('show-models').checked;
+        map.setLayoutProperty(
+          rainierLayer.id,
+          'visibility',
+          modelsVisible ? 'visible' : 'none'
+        );
+      } catch (error) {
+        console.error('Unable to add the Rainier model layer', error);
+      }
+
       // ── Hover cursor ──
       map.on('mouseenter', 'trail-pins', () => {
         map.getCanvas().style.cursor = 'pointer';
@@ -617,6 +767,15 @@
 
     document.getElementById('info-close').addEventListener('click', () => {
       document.getElementById('info-card').classList.remove('visible');
+    });
+
+    document.getElementById('show-models').addEventListener('change', (event) => {
+      const visibility = event.target.checked ? 'visible' : 'none';
+      MODEL_LAYER_IDS.forEach((layerId) => {
+        if (map.getLayer(layerId)) {
+          map.setLayoutProperty(layerId, 'visibility', visibility);
+        }
+      });
     });
 
     // ── Difficulty filter ─────────────────────────────────────────
