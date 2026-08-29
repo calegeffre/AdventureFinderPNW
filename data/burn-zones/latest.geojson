@@ -1,6 +1,6 @@
 {
   "type": "FeatureCollection",
-  "generated_at": "2026-08-28T00:24:04.061Z",
+  "generated_at": "2026-08-29T00:00:21.181Z",
   "source": "github-actions-placeholder",
   "notes": "Replace this placeholder generator with real scene fetch + OlmoEarth inference.",
   "features": [
@@ -11,7 +11,7 @@
         "name": "Sample burn zone near Leavenworth",
         "severity": "moderate",
         "score": 0.81,
-        "observed_at": "2026-08-28T00:24:04.061Z"
+        "observed_at": "2026-08-29T00:00:21.182Z"
       },
       "geometry": {
         "type": "Polygon",
