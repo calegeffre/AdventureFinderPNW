@@ -46,7 +46,7 @@ SunshineFinder is built on top of these great open source projects:
 | [Open-Meteo API](https://open-meteo.com/) | — | Free, no-auth weather forecast data (WMO weather codes, temperature) |
 | [CARTO](https://carto.com/) / [OpenStreetMap](https://www.openstreetmap.org/) | — | Dark basemap tiles displayed inside the Leaflet map |
 | [OpenFreeMap](https://openfreemap.org/) | — | Vector map tiles powering the Trail Finder basemap (OpenStreetMap data, no API key) |
-| [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) | — | Real USGS/SRTM elevation data encoded as Terrarium RGB PNG tiles, used for 3D terrain on the Trail Finder. Hosted free on Amazon S3 as an open dataset — no API key required |
+| [Mapterhorn](https://mapterhorn.com/) | — | CORS-enabled Terrarium elevation tiles used for 3D terrain and hillshading on the Trail Finder |
 | [Tailwind CSS](https://tailwindcss.com/) | ^4.3 | Design-system tokens + compiled stylesheet (`dist/adventurefinder.css`) |
 | [Playwright](https://playwright.dev/) | ^1.58.2 | Headless browser automation used to generate the screenshot above |
 

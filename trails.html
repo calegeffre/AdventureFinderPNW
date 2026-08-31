@@ -444,6 +444,13 @@
         tags: ['Day Hike', 'Loop', 'Alpine'],
         lng: -120.6893, lat: 48.5192
       },
+      {
+        id: 21, name: 'Mount Baker Summit — Easton Glacier', region: 'Mount Baker Wilderness',
+        difficulty: 'epic', miles: 14, gain: 7300,
+        desc: 'A technical glacier climb to Mount Baker’s 10,781-foot summit. This is a mountaineering route requiring glacier travel skills, roped-team equipment, and favorable conditions.',
+        tags: ['Mountaineering', 'Glacier', 'Rope Required', 'Permit Required'],
+        lng: -121.8132, lat: 48.7768
+      },
     ];
 
     // ── Colour per difficulty ─────────────────────────────────────
@@ -453,7 +460,127 @@
       hard:     '#f85149',
       epic:     '#8957e5',
     };
-    const MODEL_LAYER_IDS = ['rainier-model'];
+    const VOLCANO_MODELS = [
+      {
+        id: 'rainier-model',
+        name: 'Mount Rainier',
+        path: 'models/Rainier.glb',
+        origin: [-121.7603, 46.8523],
+        altitude: 2000,
+        sizeMeters: 12000,
+        rotation: [Math.PI / 2, 0, 0],
+      },
+      {
+        id: 'baker-model',
+        name: 'Mount Baker',
+        path: 'models/Baker.glb',
+        origin: [-121.8132, 48.7768],
+        altitude: 1500,
+        sizeMeters: 10000,
+        rotation: [Math.PI / 2, 0, 0],
+      },
+    ];
+    const MODEL_LAYER_IDS = VOLCANO_MODELS.map((model) => model.id);
+
+    function createVolcanoModelLayer(config) {
+      const coordinate = maplibregl.MercatorCoordinate.fromLngLat(
+        config.origin,
+        config.altitude
+      );
+      const transform = {
+        translateX: coordinate.x,
+        translateY: coordinate.y,
+        translateZ: coordinate.z,
+        rotateX: config.rotation[0],
+        rotateY: config.rotation[1],
+        rotateZ: config.rotation[2],
+        scale: coordinate.meterInMercatorCoordinateUnits() * config.sizeMeters,
+      };
+
+      return {
+        id: config.id,
+        type: 'custom',
+        renderingMode: '3d',
+
+        onAdd: function (customMap, gl) {
+          this.map = customMap;
+          this.camera = new THREE.Camera();
+          this.scene = new THREE.Scene();
+
+          const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+          keyLight.position.set(0, -70, 100).normalize();
+          this.scene.add(keyLight);
+
+          const fillLight = new THREE.DirectionalLight(0x9fc5ff, 1.4);
+          fillLight.position.set(60, 80, 80).normalize();
+          this.scene.add(fillLight);
+          this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+
+          new GLTFLoader().load(
+            config.path,
+            (gltf) => {
+              gltf.scene.traverse((object) => {
+                if (!object.isMesh) return;
+                const materials = Array.isArray(object.material)
+                  ? object.material
+                  : [object.material];
+                materials.forEach((material) => {
+                  if (!material) return;
+                  material.metalness = 0;
+                  material.roughness = 0.9;
+                  material.needsUpdate = true;
+                });
+              });
+              this.scene.add(gltf.scene);
+              this.map.triggerRepaint();
+            },
+            undefined,
+            (error) => console.error(`Failed to load ${config.path}`, error)
+          );
+
+          this.renderer = new THREE.WebGLRenderer({
+            canvas: customMap.getCanvas(),
+            context: gl,
+            antialias: true,
+          });
+          this.renderer.autoClear = false;
+        },
+
+        render: function (gl, matrix) {
+          const rotationX = new THREE.Matrix4().makeRotationAxis(
+            new THREE.Vector3(1, 0, 0),
+            transform.rotateX
+          );
+          const rotationY = new THREE.Matrix4().makeRotationAxis(
+            new THREE.Vector3(0, 1, 0),
+            transform.rotateY
+          );
+          const rotationZ = new THREE.Matrix4().makeRotationAxis(
+            new THREE.Vector3(0, 0, 1),
+            transform.rotateZ
+          );
+          const mapMatrix = new THREE.Matrix4().fromArray(matrix);
+          const modelMatrix = new THREE.Matrix4()
+            .makeTranslation(
+              transform.translateX,
+              transform.translateY,
+              transform.translateZ
+            )
+            .scale(new THREE.Vector3(
+              transform.scale,
+              -transform.scale,
+              transform.scale
+            ))
+            .multiply(rotationX)
+            .multiply(rotationY)
+            .multiply(rotationZ);
+
+          this.camera.projectionMatrix = mapMatrix.multiply(modelMatrix);
+          this.renderer.resetState();
+          this.renderer.render(this.scene, this.camera);
+        },
+      };
+    }
 
     // ── Counts ────────────────────────────────────────────────────
     ['all', 'easy', 'moderate', 'hard', 'epic'].forEach(d => {
@@ -481,16 +608,16 @@
       splash.style.opacity = '0';
       setTimeout(() => splash.remove(), 750);
     }
-    map.once('idle', dismissSplash);
-    setTimeout(dismissSplash, 4000); // fallback if tiles stall
+    setTimeout(dismissSplash, 12000); // emergency fallback if map initialization stalls
 
     map.on('load', () => {
-      // ── Terrain elevation (Terrarium encoding — real USGS data) ──
-      // Each tile pixel encodes altitude as: (R*256 + G + B/256) - 32768 metres
+      // ── Terrain elevation (Terrarium encoding) ──
+      // Mapterhorn permits cross-origin browser requests, unlike the raw AWS
+      // bucket endpoint, so terrain works consistently over HTTP and HTTPS.
       map.addSource('terrain-rgb', {
         type: 'raster-dem',
-        url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
-        tileSize: 256,
+        url: 'https://tiles.mapterhorn.com/tilejson.json',
+        tileSize: 512,
         encoding: 'terrarium',
         maxzoom: 14,
       });
@@ -499,6 +626,9 @@
       map.setTerrain({ source: 'terrain-rgb', exaggeration: 2.8 });
 
       // ── Hillshade layer — makes ridges and valleys pop ──
+      const firstSymbolLayer = map.getStyle().layers.find(
+        (layer) => layer.type === 'symbol'
+      )?.id;
       map.addLayer({
         id: 'hillshade',
         type: 'hillshade',
@@ -510,7 +640,7 @@
           'hillshade-accent-color': '#3a5a8a',
           'hillshade-illumination-direction': 315,
         }
-      }, 'waterway');   // insert beneath roads/labels but above water fill
+      }, firstSymbolLayer);
 
       // Sky atmosphere — gives the horizon a dramatic haze
       map.setSky({
@@ -599,121 +729,22 @@
         }
       });
 
-      // ── Rainier GLB custom 3D layer anchored at the summit ──
-      // Add this after the trail layers so a model-loading failure cannot
-      // prevent markers and labels from being created.
-      const rainierOrigin = [-121.7603, 46.8523];
-      const rainierAltitude = 2000;
-      const rainierSizeMeters = 12000;
-      const rainierCoordinate = maplibregl.MercatorCoordinate.fromLngLat(
-        rainierOrigin,
-        rainierAltitude
-      );
-      const rainierModelTransform = {
-        translateX: rainierCoordinate.x,
-        translateY: rainierCoordinate.y,
-        translateZ: rainierCoordinate.z,
-        rotateX: Math.PI / 2,
-        rotateY: 0,
-        rotateZ: 0,
-        scale: rainierCoordinate.meterInMercatorCoordinateUnits() * rainierSizeMeters,
-      };
-
-      const rainierLayer = {
-        id: 'rainier-model',
-        type: 'custom',
-        renderingMode: '3d',
-
-        onAdd: function (customMap, gl) {
-          this.map = customMap;
-          this.camera = new THREE.Camera();
-          this.scene = new THREE.Scene();
-
-          const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
-          keyLight.position.set(0, -70, 100).normalize();
-          this.scene.add(keyLight);
-
-          const fillLight = new THREE.DirectionalLight(0x9fc5ff, 1.4);
-          fillLight.position.set(60, 80, 80).normalize();
-          this.scene.add(fillLight);
-          this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-
-          new GLTFLoader().load(
-            'models/Rainier.glb',
-            (gltf) => {
-              gltf.scene.traverse((object) => {
-                if (!object.isMesh) return;
-                const materials = Array.isArray(object.material)
-                  ? object.material
-                  : [object.material];
-                materials.forEach((material) => {
-                  if (!material) return;
-                  material.metalness = 0;
-                  material.roughness = 0.9;
-                  material.needsUpdate = true;
-                });
-              });
-              this.scene.add(gltf.scene);
-              this.map.triggerRepaint();
-            },
-            undefined,
-            (error) => console.error('Failed to load models/Rainier.glb', error)
-          );
-
-          this.renderer = new THREE.WebGLRenderer({
-            canvas: customMap.getCanvas(),
-            context: gl,
-            antialias: true,
-          });
-          this.renderer.autoClear = false;
-        },
-
-        render: function (gl, matrix) {
-          const rotationX = new THREE.Matrix4().makeRotationAxis(
-            new THREE.Vector3(1, 0, 0),
-            rainierModelTransform.rotateX
-          );
-          const rotationY = new THREE.Matrix4().makeRotationAxis(
-            new THREE.Vector3(0, 1, 0),
-            rainierModelTransform.rotateY
-          );
-          const rotationZ = new THREE.Matrix4().makeRotationAxis(
-            new THREE.Vector3(0, 0, 1),
-            rainierModelTransform.rotateZ
-          );
-          const mapMatrix = new THREE.Matrix4().fromArray(matrix);
-          const modelMatrix = new THREE.Matrix4()
-            .makeTranslation(
-              rainierModelTransform.translateX,
-              rainierModelTransform.translateY,
-              rainierModelTransform.translateZ
-            )
-            .scale(new THREE.Vector3(
-              rainierModelTransform.scale,
-              -rainierModelTransform.scale,
-              rainierModelTransform.scale
-            ))
-            .multiply(rotationX)
-            .multiply(rotationY)
-            .multiply(rotationZ);
-
-          this.camera.projectionMatrix = mapMatrix.multiply(modelMatrix);
-          this.renderer.resetState();
-          this.renderer.render(this.scene, this.camera);
-          this.map.triggerRepaint();
-        },
-      };
-
-      try {
-        map.addLayer(rainierLayer);
-        const modelsVisible = document.getElementById('show-models').checked;
-        map.setLayoutProperty(
-          rainierLayer.id,
-          'visibility',
-          modelsVisible ? 'visible' : 'none'
-        );
-      } catch (error) {
-        console.error('Unable to add the Rainier model layer', error);
+      function addVolcanoModelLayers() {
+        // Place models beneath the marker glow so summit pins stay clickable.
+        VOLCANO_MODELS.forEach((config) => {
+          const modelLayer = createVolcanoModelLayer(config);
+          try {
+            map.addLayer(modelLayer, 'trail-glow');
+            const modelsVisible = document.getElementById('show-models').checked;
+            map.setLayoutProperty(
+              modelLayer.id,
+              'visibility',
+              modelsVisible ? 'visible' : 'none'
+            );
+          } catch (error) {
+            console.error(`Unable to add the ${config.name} model layer`, error);
+          }
+        });
       }
 
       // ── Hover cursor ──
@@ -729,6 +760,12 @@
         const props = e.features[0].properties;
         const trail = TRAILS.find(t => t.id === props.id);
         if (trail) showTrail(trail);
+      });
+
+      // Reveal the usable map first, then begin downloading the larger GLBs.
+      map.once('idle', () => {
+        dismissSplash();
+        requestAnimationFrame(addVolcanoModelLayers);
       });
     });
 
