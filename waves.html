@@ -57,6 +57,16 @@
     .legend-quality-red { background: var(--color-alert); color: #fee2e2; }
 
     .best-panel { min-width: 245px; max-width: 285px; }
+    .surf-guide-panel { width: min(460px, calc(100vw - 6rem)); }
+    .surf-guide-panel .panel-header {
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+    }
     .best-card { display: grid; gap: 0.75rem; }
     .best-head {
       display: flex;
@@ -515,20 +525,23 @@
     function refreshIcons() { if (window.lucide) lucide.createIcons(); }
     map.on('load', refreshIcons);
 
-    function createPanelControl(className, html) {
+    function createPanelControl(className, html, initiallyCollapsed = false) {
       return {
         onAdd() {
           const div = document.createElement('div');
           div.className = className;
           div.innerHTML = html;
-          if (window.matchMedia(MOBILE_BREAKPOINT).matches) {
+          if (initiallyCollapsed || window.matchMedia(MOBILE_BREAKPOINT).matches) {
             div.classList.add('panel-collapsed');
           }
           ['click', 'dblclick', 'mousedown', 'touchstart', 'wheel'].forEach((eventName) => {
             div.addEventListener(eventName, (event) => event.stopPropagation());
           });
-          div.querySelector('.panel-header')?.addEventListener('click', () => {
+          const panelHeader = div.querySelector('.panel-header');
+          panelHeader?.setAttribute('aria-expanded', String(!div.classList.contains('panel-collapsed')));
+          panelHeader?.addEventListener('click', () => {
             div.classList.toggle('panel-collapsed');
+            panelHeader.setAttribute('aria-expanded', String(!div.classList.contains('panel-collapsed')));
           });
           return div;
         },
@@ -536,10 +549,10 @@
       };
     }
 
-    const legend = createPanelControl('map-panel', `
-        <div class="panel-header">
+    const legend = createPanelControl('map-panel surf-guide-panel', `
+        <button class="panel-header" type="button">
           <h4>Surf Guide</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
-        </div>
+        </button>
         <div class="panel-body">
           <div class="legend-item"><span class="legend-pill legend-small">0-3 ft</span><span>Small / mellow</span></div>
           <div class="legend-item"><span class="legend-pill legend-fun">3-5 ft</span><span>Fun surf</span></div>
@@ -550,7 +563,7 @@
           <div class="legend-item"><span class="legend-pill legend-quality-red">Red</span><span>Wave quality: weak, choppy, or oversized</span></div>
           <p class="legend-note">Best Surf ranks spots by modeled daily max wave height, with wave period used as a tiebreaker. Quality colors are derived from modeled wave height + period (not Surfline ratings). Tide times come from the nearest NOAA station for each spot.</p>
         </div>
-      `);
+      `, true);
     map.addControl(legend, 'top-right');
 
     const bestSurfControl = createPanelControl('map-panel best-panel', `
