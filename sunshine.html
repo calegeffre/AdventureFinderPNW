@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PNW Sunshine Finder</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,7 +54,7 @@
     }
     .legend-toggle input { accent-color: var(--accent); cursor: pointer; }
 
-    /* Leaflet popups render on a fixed light bubble, so they stay un-themed */
+    /* Map popups render on a fixed light bubble, so they stay un-themed */
     .city-popup { text-align: center; }
     .city-popup h3 { margin-bottom: 0.5rem; color: #1a1a2e; }
     .city-popup .weather-icon { width: 2.2rem; height: 2.2rem; color: var(--accent-strong); }
@@ -159,6 +159,10 @@
       color: #f8fafc;
       border-color: rgba(148, 163, 184, 0.5);
     }
+    .maplibregl-popup-content { border-radius: 10px; padding: 0.85rem; }
+    .maplibregl-marker { cursor: pointer; }
+    .maplibregl-ctrl-top-left,
+    .maplibregl-ctrl-top-right { z-index: 20; }
 
     @media (max-width: 640px) {
       header { padding: 0.6rem 1rem; }
@@ -524,24 +528,43 @@
       document.getElementById('sunTab').dataset.dayIndex = daysToSun;
     }
 
-    // Initialize map centered on PNW
-    const map = L.map('map').setView([47.5, -121.5], 7);
-    
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map);
+    // Initialize the keyless OpenFreeMap vector basemap.
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [-121.5, 47.5],
+      zoom: 7,
+      maxZoom: 19,
+    });
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    const mapReady = new Promise((resolve) => map.once('load', resolve));
 
     function refreshIcons() { if (window.lucide) lucide.createIcons(); }
-    map.on('popupopen', refreshIcons);
+    map.on('load', refreshIcons);
+
+    function createPanelControl(className, html) {
+      return {
+        onAdd() {
+          const div = document.createElement('div');
+          div.className = className;
+          div.innerHTML = html;
+          if (window.matchMedia(MOBILE_BREAKPOINT).matches) {
+            div.classList.add('panel-collapsed');
+          }
+          ['click', 'dblclick', 'mousedown', 'touchstart', 'wheel'].forEach((eventName) => {
+            div.addEventListener(eventName, (event) => event.stopPropagation());
+          });
+          div.querySelector('.panel-header')?.addEventListener('click', () => {
+            div.classList.toggle('panel-collapsed');
+          });
+          return div;
+        },
+        onRemove() {},
+      };
+    }
 
     // Add legend
-    const legend = L.control({ position: 'topright' });
-    legend.onAdd = function() {
-      const div = L.DomUtil.create('div', 'legend');
-      const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
-      div.innerHTML = `
+    const legend = createPanelControl('legend', `
         <div class="panel-header">
           <h4>Weather</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
@@ -564,35 +587,42 @@
             <label><input type="checkbox" id="toggleAqi"> Show AQI</label>
           </div>
         </div>
-      `;
-      if (isMobile) div.classList.add('panel-collapsed');
-      L.DomEvent.on(div.querySelector('.panel-header'), 'click', function() {
-        div.classList.toggle('panel-collapsed');
-      });
-      return div;
-    };
-    legend.addTo(map);
+      `);
+    map.addControl(legend, 'top-right');
 
     // Top 3 Closest Sunshine panel (topleft)
-    const top3Control = L.control({ position: 'topleft' });
-    top3Control.onAdd = function() {
-      const div = L.DomUtil.create('div', 'top3-panel');
-      const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
-      div.innerHTML = `
+    const top3Control = createPanelControl('top3-panel', `
         <div class="panel-header">
           <h4><i data-lucide="trophy" class="icon"></i> 3 Closest Sunny Spots</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="panel-body">
           <div id="top3Content"><div class="top3-none">Loading...</div></div>
         </div>
-      `;
-      if (isMobile) div.classList.add('panel-collapsed');
-      L.DomEvent.on(div.querySelector('.panel-header'), 'click', function() {
-        div.classList.toggle('panel-collapsed');
-      });
-      return div;
-    };
-    top3Control.addTo(map);
+      `);
+    map.addControl(top3Control, 'top-left');
+    map.on('click', 'burn-zone-fill', (event) => {
+      const feature = event.features?.[0];
+      if (!feature) return;
+      const props = feature.properties || {};
+      const title = props.name || 'Burn zone';
+      const severity = props.severity || 'Unknown';
+      const observedAt = props.observed_at
+        ? new Date(props.observed_at).toLocaleDateString()
+        : 'Unknown';
+      const numericScore = Number(props.score);
+      const score = Number.isFinite(numericScore) ? numericScore.toFixed(2) : 'N/A';
+      new maplibregl.Popup()
+        .setLngLat(event.lngLat)
+        .setHTML(`
+          <div class="city-popup">
+            <h3>${title}</h3>
+            <div class="conditions">Burn severity: ${severity}</div>
+            <div class="temp">Observed: ${observedAt}</div>
+            <div class="temp">Confidence: ${score}</div>
+          </div>
+        `)
+        .addTo(map);
+    });
 
     // Update the Top 3 Closest Sunshine panel for the given day
     async function updateTop3Panel(dayIndex) {
@@ -721,41 +751,37 @@
       refreshIcons();
     }
 
-    // Create custom emoji marker
+    // Create custom HTML markers for MapLibre.
     function createEmojiIcon(iconName, isSunny, aqi) {
       const aqiMeta = getAqiCategory(aqi);
       const aqiMarkup = aqi !== null
         ? `<span class="marker-aqi ${aqiMeta.className}" title="AQI ${aqi} (${aqiMeta.label})">${aqi}</span>`
         : '';
-      return L.divIcon({
-        html: `<div class="marker-wrap"><i data-lucide="${iconName}" class="marker-icon${isSunny ? ' marker-sunny' : ''}"></i>${aqiMarkup}</div>`,
-        className: 'emoji-marker',
-        iconSize: [74, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20]
-      });
+      const element = document.createElement('div');
+      element.className = 'emoji-marker';
+      element.innerHTML = `<div class="marker-wrap"><i data-lucide="${iconName}" class="marker-icon${isSunny ? ' marker-sunny' : ''}"></i>${aqiMarkup}</div>`;
+      return element;
     }
 
     function createFireIcon() {
-      return L.divIcon({
-        html: `<i data-lucide="flame" class="marker-icon marker-fire"></i>`,
-        className: 'fire-marker',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -12]
-      });
+      const element = document.createElement('div');
+      element.className = 'fire-marker';
+      element.innerHTML = '<i data-lucide="flame" class="marker-icon marker-fire"></i>';
+      return element;
     }
 
     function clearFireMarkers() {
-      fireMarkers.forEach(marker => map.removeLayer(marker));
+      fireMarkers.forEach(marker => marker.remove());
       fireMarkers = [];
     }
 
     function clearBurnZoneLayer() {
-      if (burnZoneLayer) {
-        map.removeLayer(burnZoneLayer);
-        burnZoneLayer = null;
+      if (map.getLayer('burn-zone-outline')) map.removeLayer('burn-zone-outline');
+      if (map.getLayer('burn-zone-fill')) map.removeLayer('burn-zone-fill');
+      if (map.getSource('burn-zones')) {
+        map.removeSource('burn-zones');
       }
+      burnZoneLayer = null;
     }
 
     function renderFireMarkers() {
@@ -763,15 +789,19 @@
       if (!showFires) return;
 
       activeFireData.forEach(fire => {
-        const marker = L.marker([fire.lat, fire.lon], { icon: createFireIcon() }).addTo(map);
         const updatedAt = fire.lastSeen ? new Date(fire.lastSeen).toLocaleString() : 'Unknown';
-        marker.bindPopup(`
+        const popup = new maplibregl.Popup({ offset: 18 }).setHTML(`
           <div class="city-popup">
             <h3>${fire.title}</h3>
             <div class="conditions"><i data-lucide="flame" class="icon"></i> Active wildfire</div>
             <div class="temp">Updated: ${updatedAt}</div>
           </div>
         `);
+        popup.on('open', refreshIcons);
+        const marker = new maplibregl.Marker({ element: createFireIcon() })
+          .setLngLat([fire.lon, fire.lat])
+          .setPopup(popup)
+          .addTo(map);
         fireMarkers.push(marker);
       });
       refreshIcons();
@@ -795,24 +825,41 @@
       clearBurnZoneLayer();
       if (!showBurnZones || !burnZoneData) return;
 
-      burnZoneLayer = L.geoJSON(burnZoneData, {
-        style: burnZoneStyle,
-        onEachFeature(feature, layer) {
-          const props = feature.properties || {};
-          const title = props.name || 'Burn zone';
-          const severity = props.severity || 'Unknown';
-          const observedAt = props.observed_at ? new Date(props.observed_at).toLocaleDateString() : 'Unknown';
-          const score = Number.isFinite(props.score) ? Number(props.score).toFixed(2) : 'N/A';
-          layer.bindPopup(`
-            <div class="city-popup">
-              <h3>${title}</h3>
-              <div class="conditions">Burn severity: ${severity}</div>
-              <div class="temp">Observed: ${observedAt}</div>
-              <div class="temp">Confidence: ${score}</div>
-            </div>
-          `);
-        }
-      }).addTo(map);
+      map.addSource('burn-zones', { type: 'geojson', data: burnZoneData });
+      map.addLayer({
+        id: 'burn-zone-fill',
+        type: 'fill',
+        source: 'burn-zones',
+        paint: {
+          'fill-color': ['match', ['get', 'severity'],
+            'low', '#fbbf24',
+            'moderate', '#f97316',
+            'high', '#b45309',
+            '#78350f'
+          ],
+          'fill-opacity': ['match', ['get', 'severity'],
+            'low', 0.2,
+            'moderate', 0.24,
+            'high', 0.28,
+            0.18
+          ],
+        },
+      });
+      map.addLayer({
+        id: 'burn-zone-outline',
+        type: 'line',
+        source: 'burn-zones',
+        paint: {
+          'line-color': ['match', ['get', 'severity'],
+            'low', '#fbbf24',
+            'moderate', '#f97316',
+            'high', '#b45309',
+            '#78350f'
+          ],
+          'line-width': 2,
+        },
+      });
+      burnZoneLayer = true;
     }
 
     function isInFireSearchBounds(lat, lon) {
@@ -956,7 +1003,7 @@
     let allCityData = [];
     
     function clearMarkers() {
-      markers.forEach(m => map.removeLayer(m));
+      markers.forEach(marker => marker.remove());
       markers = [];
     }
     
@@ -969,8 +1016,11 @@
       allCityData.forEach(cityData => {
         const dayWeather = getWeatherForDay(cityData, dayIndex);
         const aqiValue = getAqiForDay(cityData, dayIndex);
-        const icon = createEmojiIcon(dayWeather.weather.icon, dayWeather.isSunny, showAqi ? aqiValue : null);
-        const marker = L.marker([cityData.lat, cityData.lon], { icon }).addTo(map);
+        const markerElement = createEmojiIcon(
+          dayWeather.weather.icon,
+          dayWeather.isSunny,
+          showAqi ? aqiValue : null
+        );
         
         const tempDisplay = isToday 
           ? `Currently: ${cityData.currentTemp}°F<br>High: ${dayWeather.highTemp}°F / Low: ${dayWeather.lowTemp}°F`
@@ -980,7 +1030,7 @@
           ? `<div class="conditions">AQI: <span class="popup-aqi ${aqiMeta.className}">${aqiValue}</span> ${aqiMeta.label}</div>`
           : '';
         
-        marker.bindPopup(`
+        const popup = new maplibregl.Popup({ offset: 24 }).setHTML(`
           <div class="city-popup">
             <h3>${cityData.name}</h3>
             <i data-lucide="${dayWeather.weather.icon}" class="weather-icon"></i>
@@ -990,6 +1040,11 @@
             ${dayWeather.isSunny ? '<p style="color: var(--color-sun-ink); font-weight: bold; margin-top: 0.5rem;"><i data-lucide=\'sun\' class="icon"></i> Sunny!</p>' : ''}
           </div>
         `);
+        popup.on('open', refreshIcons);
+        const marker = new maplibregl.Marker({ element: markerElement })
+          .setLngLat([cityData.lon, cityData.lat])
+          .setPopup(popup)
+          .addTo(map);
         
         markers.push(marker);
       });
@@ -1079,6 +1134,9 @@
         showBurnZones = burnZonesToggle.checked;
         if (showBurnZones && !burnZoneData) {
           await fetchBurnZones();
+        }
+        if (showBurnZones) {
+          await mapReady;
         }
         renderBurnZones();
       });

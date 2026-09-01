@@ -29,13 +29,7 @@ const fs = require('fs');
 // Config
 // ---------------------------------------------------------------------------
 const REPO_ROOT = path.resolve(__dirname, '..');
-const INDEX_HTML = path.join(REPO_ROOT, 'index.html');
-const VENDOR_DIR = path.join(__dirname, 'vendor');
-
-// 1×1 dark-grey PNG placeholder for map tiles
-const TILE_PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-const TILE_PNG_BUF = Buffer.from(TILE_PNG_BASE64, 'base64');
+const INDEX_HTML = path.join(REPO_ROOT, 'sunshine.html');
 
 // ---------------------------------------------------------------------------
 // Mock weather data
@@ -116,8 +110,8 @@ function buildMockWeather(url) {
 // Main
 // ---------------------------------------------------------------------------
 (async () => {
-  const leafletJs  = fs.readFileSync(path.join(VENDOR_DIR, 'leaflet.js'),  'utf8');
-  const leafletCss = fs.readFileSync(path.join(VENDOR_DIR, 'leaflet.css'), 'utf8');
+  const maplibreJs = fs.readFileSync(require.resolve('maplibre-gl/dist/maplibre-gl.js'), 'utf8');
+  const maplibreCss = fs.readFileSync(require.resolve('maplibre-gl/dist/maplibre-gl.css'), 'utf8');
 
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
@@ -127,22 +121,23 @@ function buildMockWeather(url) {
   const page = await browser.newPage();
   await page.setViewportSize({ width: 1280, height: 800 });
 
-  await page.route('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', route =>
-    route.fulfill({ status: 200, contentType: 'application/javascript', body: leafletJs })
+  await page.route('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', route =>
+    route.fulfill({ status: 200, contentType: 'application/javascript', body: maplibreJs })
   );
-  await page.route('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', route =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: leafletCss })
+  await page.route('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css', route =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: maplibreCss })
   );
-  await page.route(/leaflet.*\.(png|svg)/, route => {
-    const imgPath = path.join(VENDOR_DIR, 'images', path.basename(route.request().url().split('?')[0]));
+  await page.route('https://tiles.openfreemap.org/styles/liberty', route => {
     route.fulfill({
-      status: 200, contentType: 'image/png',
-      body: fs.existsSync(imgPath) ? fs.readFileSync(imgPath) : TILE_PNG_BUF,
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        version: 8,
+        sources: {},
+        layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#eef3f6' } }],
+      }),
     });
   });
-  await page.route(/basemaps\.cartocdn\.com|tile\.openstreetmap\.org/, route =>
-    route.fulfill({ status: 200, contentType: 'image/png', body: TILE_PNG_BUF })
-  );
   await page.route(/api\.open-meteo\.com/, route => {
     route.fulfill({
       status: 200,

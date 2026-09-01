@@ -2,15 +2,15 @@
  * screenshot.js
  *
  * Uses Playwright with fully mocked network responses to render
- * index.html (including the Leaflet map and Top 3 Closest Sunny Spots panel)
+ * sunshine.html (including the MapLibre map and Top 3 Closest Sunny Spots panel)
  * in a headless Chromium browser and save a screenshot.
  *
  * Run:  node test/screenshot.js
  *
  * How the mocking works
  * ---------------------
- * 1. Leaflet CDN (CSS + JS)  → served from test/vendor/  (pre-downloaded via npm)
- * 2. CartoDB dark map tiles  → returns a 1×1 dark PNG so tiles render instantly
+ * 1. MapLibre CDN (CSS + JS) → served from the installed npm package
+ * 2. OpenFreeMap style       → returns a local minimal style for deterministic rendering
  * 3. Open-Meteo forecast API → returns deterministic mock JSON per city so we can
  *    control exactly which spots show as "sunny" vs "rainy"
  *
@@ -31,14 +31,8 @@ const fs = require('fs');
 // ---------------------------------------------------------------------------
 const REPO_ROOT = path.resolve(__dirname, '..');
 const INDEX_HTML = path.join(REPO_ROOT, 'sunshine.html');
-const VENDOR_DIR = path.join(__dirname, 'vendor');
 const SCREENSHOTS_DIR = path.join(REPO_ROOT, 'screenshots');
 const OUTPUT_FILE = path.join(SCREENSHOTS_DIR, 'preview.png');
-
-// 1×1 dark-grey PNG (base64) — used as a placeholder for all map tiles
-const TILE_PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-const TILE_PNG_BUF = Buffer.from(TILE_PNG_BASE64, 'base64');
 
 // ---------------------------------------------------------------------------
 // Mock weather data factory
@@ -140,8 +134,8 @@ function buildMockWeather(url) {
 (async () => {
   fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
-  const leafletJs = fs.readFileSync(path.join(VENDOR_DIR, 'leaflet.js'), 'utf8');
-  const leafletCss = fs.readFileSync(path.join(VENDOR_DIR, 'leaflet.css'), 'utf8');
+  const maplibreJs = fs.readFileSync(require.resolve('maplibre-gl/dist/maplibre-gl.js'), 'utf8');
+  const maplibreCss = fs.readFileSync(require.resolve('maplibre-gl/dist/maplibre-gl.css'), 'utf8');
 
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
@@ -151,29 +145,26 @@ function buildMockWeather(url) {
   const page = await browser.newPage();
   await page.setViewportSize({ width: 1280, height: 800 });
 
-  // ---- Route: Leaflet JS from CDN ----------------------------------------
-  await page.route('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', route =>
-    route.fulfill({ status: 200, contentType: 'application/javascript', body: leafletJs })
+  // ---- Route: MapLibre from CDN ------------------------------------------
+  await page.route('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', route =>
+    route.fulfill({ status: 200, contentType: 'application/javascript', body: maplibreJs })
   );
 
-  // ---- Route: Leaflet CSS from CDN ----------------------------------------
-  await page.route('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', route =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: leafletCss })
+  await page.route('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css', route =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: maplibreCss })
   );
 
-  // ---- Route: Leaflet marker images (loaded by the CSS) -------------------
-  await page.route(/leaflet.*\.(png|svg)/, route => {
-    const imgPath = path.join(VENDOR_DIR, 'images', path.basename(route.request().url().split('?')[0]));
-    if (fs.existsSync(imgPath)) {
-      route.fulfill({ status: 200, contentType: 'image/png', body: fs.readFileSync(imgPath) });
-    } else {
-      route.fulfill({ status: 200, contentType: 'image/png', body: TILE_PNG_BUF });
-    }
-  });
-
-  // ---- Route: CartoDB / OpenStreetMap map tiles ---------------------------
-  await page.route(/basemaps\.cartocdn\.com|tile\.openstreetmap\.org/, route =>
-    route.fulfill({ status: 200, contentType: 'image/png', body: TILE_PNG_BUF })
+  // ---- Route: OpenFreeMap style ------------------------------------------
+  await page.route('https://tiles.openfreemap.org/styles/liberty', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        version: 8,
+        sources: {},
+        layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#eef3f6' } }],
+      }),
+    })
   );
 
   // ---- Route: Open-Meteo weather API --------------------------------------

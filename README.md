@@ -41,11 +41,9 @@ SunshineFinder is built on top of these great open source projects:
 
 | Library | Version | What we use it for |
 |---|---|---|
-| [Leaflet](https://leafletjs.com/) | 1.9.4 | Interactive map rendering and city markers (Sunshine, Snow, Waves pages) |
-| [MapLibre GL JS](https://maplibre.org/) | 4.7.1 | 3D WebGL map rendering with terrain elevation on the Trail Finder |
+| [MapLibre GL JS](https://maplibre.org/) | 4.7.1 | WebGL maps, controls, markers, overlays, and 3D terrain across Sunshine, Waves, and Trails |
 | [Open-Meteo API](https://open-meteo.com/) | — | Free, no-auth weather forecast data (WMO weather codes, temperature) |
-| [CARTO](https://carto.com/) / [OpenStreetMap](https://www.openstreetmap.org/) | — | Dark basemap tiles displayed inside the Leaflet map |
-| [OpenFreeMap](https://openfreemap.org/) | — | Vector map tiles powering the Trail Finder basemap (OpenStreetMap data, no API key) |
+| [OpenFreeMap](https://openfreemap.org/) | — | Keyless vector basemaps for Sunshine, Waves, and Trails (OpenStreetMap data) |
 | [Mapterhorn](https://mapterhorn.com/) | — | CORS-enabled Terrarium elevation tiles used for 3D terrain and hillshading on the Trail Finder |
 | [Tailwind CSS](https://tailwindcss.com/) | ^4.3 | Design-system tokens + compiled stylesheet (`dist/adventurefinder.css`) |
 | [Playwright](https://playwright.dev/) | ^1.58.2 | Headless browser automation used to generate the screenshot above |
@@ -68,8 +66,8 @@ The `screenshots/preview.png` image in this README is produced automatically by 
 
 1. Playwright launches a headless Chromium browser and loads `index.html`.
 2. All external network requests are intercepted and replaced with deterministic mock data so the screenshot is fast and reproducible:
-   - The Leaflet CDN (JS + CSS) is served from locally vendored copies in `test/vendor/`.
-   - CartoDB map tiles are replaced with a 1×1 dark-grey PNG placeholder so tiles render instantly without network calls.
+   - MapLibre CDN assets are served from the installed npm package.
+   - OpenFreeMap is replaced with a minimal local style so map rendering is deterministic.
    - Open-Meteo API calls return hardcoded weather codes, making specific cities appear sunny or rainy in a predictable way.
 3. The script waits until the **Top 3 Closest Sunny Spots** panel is fully populated, then captures a 1280×800 viewport screenshot.
 
@@ -86,13 +84,13 @@ A security advisory check was performed against the [GitHub Advisory Database](h
 | Package | Version | Vulnerabilities found |
 |---|---|---|
 | `playwright` | ^1.58.2 | ✅ None |
-| `leaflet` (vendored) | 1.9.4 | ✅ None |
+| `maplibre-gl` | 4.7.1 | Not re-audited as part of this migration |
 
 **Additional notes:**
 
 - **Open-Meteo API** — requests are read-only `GET` calls to a public, unauthenticated endpoint. No credentials are stored or transmitted.
-- **CARTO / OpenStreetMap tiles** — tile URLs are composed of standard `{z}/{x}/{y}` slippy-map coordinates. No user data is sent in tile requests.
-- **Leaflet is vendored** (`test/vendor/leaflet.js`) rather than loaded live from a CDN in the test environment, which eliminates supply-chain risk during screenshot generation.
+- **OpenFreeMap** — vector basemap requests require no API key and retain visible OpenStreetMap/OpenMapTiles attribution.
+- **MapLibre test assets** are loaded from the pinned npm dependency rather than fetched from a CDN during screenshot generation.
 - The app itself is a fully client-side, single HTML file with no backend and no user authentication, which keeps the attack surface minimal.
 
 ## License

@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PNW Wave Finder</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -114,7 +114,7 @@
     }
     .runner-item strong { color: var(--text); }
 
-    /* Leaflet popups + markers render on the map, so they stay un-themed */
+    /* Map popups + markers render on the map, so they stay un-themed */
     .surf-popup { text-align: center; min-width: 210px; }
     .surf-popup h3 { margin-bottom: 0.4rem; color: #082032; }
     .surf-popup .wave-icon { width: 2.1rem; height: 2.1rem; color: var(--accent-strong); }
@@ -171,6 +171,10 @@
     .quality-dot.quality-green { color: #4c8a3f; }
     .quality-dot.quality-yellow { color: #d9a521; }
     .quality-dot.quality-red { color: #c0492e; }
+    .maplibregl-popup-content { border-radius: 10px; padding: 0.85rem; }
+    .maplibregl-marker { cursor: pointer; }
+    .maplibregl-ctrl-top-left,
+    .maplibregl-ctrl-top-right { z-index: 20; }
 
     @media (max-width: 640px) {
       header { padding: 0.7rem 1rem; }
@@ -377,18 +381,15 @@
 
     function createEmojiIcon(heightValue, qualityClass, isBest) {
       const band = getWaveBand(heightValue);
-      return L.divIcon({
-        html: `
-          <div class="surf-marker ${qualityClass}${isBest ? ' best' : ''}">
-            <span><i data-lucide="${isBest ? 'waves' : band.icon}" class="surf-icon"></i></span>
-            <span class="surf-marker-height">${formatWaveHeightShort(heightValue)}</span>
-          </div>
-        `,
-        className: 'surf-marker-shell',
-        iconSize: [68, 34],
-        iconAnchor: [34, 17],
-        popupAnchor: [0, -18]
-      });
+      const element = document.createElement('div');
+      element.className = 'surf-marker-shell';
+      element.innerHTML = `
+        <div class="surf-marker ${qualityClass}${isBest ? ' best' : ''}">
+          <span><i data-lucide="${isBest ? 'waves' : band.icon}" class="surf-icon"></i></span>
+          <span class="surf-marker-height">${formatWaveHeightShort(heightValue)}</span>
+        </div>
+      `;
+      return element;
     }
 
     function groupTidePredictions(predictions) {
@@ -499,26 +500,43 @@
     }
 
     function clearMarkers() {
-      markers.forEach((marker) => map.removeLayer(marker));
+      markers.forEach((marker) => marker.remove());
       markers = [];
     }
 
-    const map = L.map('map').setView([46.15, -124.25], 7);
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map);
-
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [-124.25, 46.15],
+      zoom: 7,
+      maxZoom: 19,
+    });
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
     function refreshIcons() { if (window.lucide) lucide.createIcons(); }
-    map.on('popupopen', refreshIcons);
+    map.on('load', refreshIcons);
 
-    const legend = L.control({ position: 'topright' });
-    legend.onAdd = function() {
-      const div = L.DomUtil.create('div', 'map-panel');
-      const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
-      div.innerHTML = `
+    function createPanelControl(className, html) {
+      return {
+        onAdd() {
+          const div = document.createElement('div');
+          div.className = className;
+          div.innerHTML = html;
+          if (window.matchMedia(MOBILE_BREAKPOINT).matches) {
+            div.classList.add('panel-collapsed');
+          }
+          ['click', 'dblclick', 'mousedown', 'touchstart', 'wheel'].forEach((eventName) => {
+            div.addEventListener(eventName, (event) => event.stopPropagation());
+          });
+          div.querySelector('.panel-header')?.addEventListener('click', () => {
+            div.classList.toggle('panel-collapsed');
+          });
+          return div;
+        },
+        onRemove() {},
+      };
+    }
+
+    const legend = createPanelControl('map-panel', `
         <div class="panel-header">
           <h4>Surf Guide</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
@@ -532,38 +550,18 @@
           <div class="legend-item"><span class="legend-pill legend-quality-red">Red</span><span>Wave quality: weak, choppy, or oversized</span></div>
           <p class="legend-note">Best Surf ranks spots by modeled daily max wave height, with wave period used as a tiebreaker. Quality colors are derived from modeled wave height + period (not Surfline ratings). Tide times come from the nearest NOAA station for each spot.</p>
         </div>
-      `;
-      if (isMobile) div.classList.add('panel-collapsed');
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      L.DomEvent.on(div.querySelector('.panel-header'), 'click', function() {
-        div.classList.toggle('panel-collapsed');
-      });
-      return div;
-    };
-    legend.addTo(map);
+      `);
+    map.addControl(legend, 'top-right');
 
-    const bestSurfControl = L.control({ position: 'topleft' });
-    bestSurfControl.onAdd = function() {
-      const div = L.DomUtil.create('div', 'map-panel best-panel');
-      const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
-      div.innerHTML = `
+    const bestSurfControl = createPanelControl('map-panel best-panel', `
         <div class="panel-header">
           <h4><i data-lucide="waves" class="icon"></i> Best Surf</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="panel-body">
           <div id="bestSurfContent"><div class="panel-empty">Loading surf lineup...</div></div>
         </div>
-      `;
-      if (isMobile) div.classList.add('panel-collapsed');
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      L.DomEvent.on(div.querySelector('.panel-header'), 'click', function() {
-        div.classList.toggle('panel-collapsed');
-      });
-      return div;
-    };
-    bestSurfControl.addTo(map);
+      `);
+    map.addControl(bestSurfControl, 'top-left');
 
     function updateBestSurfPanel(dayIndex) {
       const panel = document.getElementById('bestSurfContent');
@@ -637,10 +635,13 @@
       const bestSpotName = ranked[0]?.spot.name || null;
 
       ranked.forEach(({ spot, summary }) => {
-        const icon = createEmojiIcon(summary.waveHeight, summary.quality.markerClass, spot.name === bestSpotName);
-        const marker = L.marker([spot.lat, spot.lon], { icon }).addTo(map);
+        const markerElement = createEmojiIcon(
+          summary.waveHeight,
+          summary.quality.markerClass,
+          spot.name === bestSpotName
+        );
 
-        marker.bindPopup(`
+        const popup = new maplibregl.Popup({ offset: 22 }).setHTML(`
           <div class="surf-popup">
             <h3>${spot.name}</h3>
             <i data-lucide="${spot.name === bestSpotName ? 'waves' : summary.band.icon}" class="wave-icon"></i>
@@ -659,6 +660,11 @@
             ${spot.name === bestSpotName ? '<div class="best-flag">Best surf on this map for the selected day</div>' : ''}
           </div>
         `);
+        popup.on('open', refreshIcons);
+        const marker = new maplibregl.Marker({ element: markerElement })
+          .setLngLat([spot.lon, spot.lat])
+          .setPopup(popup)
+          .addTo(map);
 
         markers.push(marker);
       });
