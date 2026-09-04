@@ -107,24 +107,6 @@
     .diff-moderate { background: #d29922; }
     .diff-hard     { background: #f85149; }
     .diff-epic     { background: #8957e5; }
-    .model-toggle {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid rgba(255,255,255,0.09);
-      color: #8b949e;
-      font-size: 0.78rem;
-      cursor: pointer;
-    }
-    .model-toggle input {
-      width: 1rem;
-      height: 1rem;
-      accent-color: #58a6ff;
-      cursor: pointer;
-    }
-
     /* ── Info card ── */
     .info-card {
       position: fixed;
@@ -265,10 +247,6 @@
         <span class="filter-count" id="count-epic">0</span>
       </button>
     </div>
-    <label class="model-toggle">
-      <input type="checkbox" id="show-models" checked>
-      <span>Show models</span>
-    </label>
   </aside>
 
   <!-- Info card -->
@@ -289,18 +267,7 @@
     <span class="legend-item"><span class="diff-dot diff-epic"></span>Epic</span>
   </div>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.168.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.168.0/examples/jsm/"
-      }
-    }
-  </script>
-  <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
+  <script>
     // ── Trail data — real GPS coordinates ─────────────────────────
     // lng/lat verified against USGS, WTA, and NPS sources
     const TRAILS = [
@@ -460,128 +427,6 @@
       hard:     '#f85149',
       epic:     '#8957e5',
     };
-    const VOLCANO_MODELS = [
-      {
-        id: 'rainier-model',
-        name: 'Mount Rainier',
-        path: 'models/Rainier.glb',
-        origin: [-121.7603, 46.8523],
-        altitude: 2000,
-        sizeMeters: 12000,
-        rotation: [Math.PI / 2, 0, 0],
-      },
-      {
-        id: 'baker-model',
-        name: 'Mount Baker',
-        path: 'models/Baker.glb',
-        origin: [-121.8132, 48.7768],
-        altitude: 1500,
-        sizeMeters: 10000,
-        rotation: [Math.PI / 2, 0, 0],
-      },
-    ];
-    const MODEL_LAYER_IDS = VOLCANO_MODELS.map((model) => model.id);
-
-    function createVolcanoModelLayer(config) {
-      const coordinate = maplibregl.MercatorCoordinate.fromLngLat(
-        config.origin,
-        config.altitude
-      );
-      const transform = {
-        translateX: coordinate.x,
-        translateY: coordinate.y,
-        translateZ: coordinate.z,
-        rotateX: config.rotation[0],
-        rotateY: config.rotation[1],
-        rotateZ: config.rotation[2],
-        scale: coordinate.meterInMercatorCoordinateUnits() * config.sizeMeters,
-      };
-
-      return {
-        id: config.id,
-        type: 'custom',
-        renderingMode: '3d',
-
-        onAdd: function (customMap, gl) {
-          this.map = customMap;
-          this.camera = new THREE.Camera();
-          this.scene = new THREE.Scene();
-
-          const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
-          keyLight.position.set(0, -70, 100).normalize();
-          this.scene.add(keyLight);
-
-          const fillLight = new THREE.DirectionalLight(0x9fc5ff, 1.4);
-          fillLight.position.set(60, 80, 80).normalize();
-          this.scene.add(fillLight);
-          this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-
-          new GLTFLoader().load(
-            config.path,
-            (gltf) => {
-              gltf.scene.traverse((object) => {
-                if (!object.isMesh) return;
-                const materials = Array.isArray(object.material)
-                  ? object.material
-                  : [object.material];
-                materials.forEach((material) => {
-                  if (!material) return;
-                  material.metalness = 0;
-                  material.roughness = 0.9;
-                  material.needsUpdate = true;
-                });
-              });
-              this.scene.add(gltf.scene);
-              this.map.triggerRepaint();
-            },
-            undefined,
-            (error) => console.error(`Failed to load ${config.path}`, error)
-          );
-
-          this.renderer = new THREE.WebGLRenderer({
-            canvas: customMap.getCanvas(),
-            context: gl,
-            antialias: true,
-          });
-          this.renderer.autoClear = false;
-        },
-
-        render: function (gl, matrix) {
-          const rotationX = new THREE.Matrix4().makeRotationAxis(
-            new THREE.Vector3(1, 0, 0),
-            transform.rotateX
-          );
-          const rotationY = new THREE.Matrix4().makeRotationAxis(
-            new THREE.Vector3(0, 1, 0),
-            transform.rotateY
-          );
-          const rotationZ = new THREE.Matrix4().makeRotationAxis(
-            new THREE.Vector3(0, 0, 1),
-            transform.rotateZ
-          );
-          const mapMatrix = new THREE.Matrix4().fromArray(matrix);
-          const modelMatrix = new THREE.Matrix4()
-            .makeTranslation(
-              transform.translateX,
-              transform.translateY,
-              transform.translateZ
-            )
-            .scale(new THREE.Vector3(
-              transform.scale,
-              -transform.scale,
-              transform.scale
-            ))
-            .multiply(rotationX)
-            .multiply(rotationY)
-            .multiply(rotationZ);
-
-          this.camera.projectionMatrix = mapMatrix.multiply(modelMatrix);
-          this.renderer.resetState();
-          this.renderer.render(this.scene, this.camera);
-        },
-      };
-    }
-
     // ── Counts ────────────────────────────────────────────────────
     ['all', 'easy', 'moderate', 'hard', 'epic'].forEach(d => {
       const count = d === 'all' ? TRAILS.length : TRAILS.filter(t => t.difficulty === d).length;
@@ -729,24 +574,6 @@
         }
       });
 
-      function addVolcanoModelLayers() {
-        // Place models beneath the marker glow so summit pins stay clickable.
-        VOLCANO_MODELS.forEach((config) => {
-          const modelLayer = createVolcanoModelLayer(config);
-          try {
-            map.addLayer(modelLayer, 'trail-glow');
-            const modelsVisible = document.getElementById('show-models').checked;
-            map.setLayoutProperty(
-              modelLayer.id,
-              'visibility',
-              modelsVisible ? 'visible' : 'none'
-            );
-          } catch (error) {
-            console.error(`Unable to add the ${config.name} model layer`, error);
-          }
-        });
-      }
-
       // ── Hover cursor ──
       map.on('mouseenter', 'trail-pins', () => {
         map.getCanvas().style.cursor = 'pointer';
@@ -762,11 +589,7 @@
         if (trail) showTrail(trail);
       });
 
-      // Reveal the usable map first, then begin downloading the larger GLBs.
-      map.once('idle', () => {
-        dismissSplash();
-        requestAnimationFrame(addVolcanoModelLayers);
-      });
+      map.once('idle', dismissSplash);
     });
 
     // ── Info card ─────────────────────────────────────────────────
@@ -804,15 +627,6 @@
 
     document.getElementById('info-close').addEventListener('click', () => {
       document.getElementById('info-card').classList.remove('visible');
-    });
-
-    document.getElementById('show-models').addEventListener('change', (event) => {
-      const visibility = event.target.checked ? 'visible' : 'none';
-      MODEL_LAYER_IDS.forEach((layerId) => {
-        if (map.getLayer(layerId)) {
-          map.setLayoutProperty(layerId, 'visibility', visibility);
-        }
-      });
     });
 
     // ── Difficulty filter ─────────────────────────────────────────
