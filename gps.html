@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPX Track Finder | Adventure Finder</title>
+  <script src="https://unpkg.com/lucide@1.31.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="dist/adventurefinder.css?v=20260817-2" />
+  <style>
+    .hero--tracks {
+      min-height: 32vh;
+      padding-bottom: 2.5rem;
+      background:
+        linear-gradient(135deg, rgba(18, 72, 67, 0.96), rgba(41, 91, 125, 0.9)),
+        radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.2) 0 2px, transparent 3px);
+      background-size: auto, 32px 32px;
+    }
+    .track-section { min-height: 52vh; }
+    .track-card {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: clamp(1.5rem, 5vw, 2.5rem);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-card);
+    }
+    .track-card h2 {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+    }
+    .track-card h2 [data-lucide] { color: var(--accent-strong); }
+    .track-intro,
+    .track-note {
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .track-form { margin-top: 1.5rem; }
+    .track-label {
+      display: block;
+      margin-bottom: 0.45rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .track-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .track-input {
+      min-width: 0;
+      flex: 1;
+      padding: 0.8rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+    }
+    .track-input:focus {
+      outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+      border-color: var(--accent);
+    }
+    .track-error {
+      min-height: 1.5rem;
+      margin-top: 0.5rem;
+      color: #b42318;
+      font-size: 0.85rem;
+    }
+    .track-note {
+      display: flex;
+      gap: 0.55rem;
+      align-items: flex-start;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .track-note [data-lucide] { flex: none; width: 1.15rem; margin-top: 0.15rem; }
+    @media (max-width: 620px) {
+      .track-row { flex-direction: column; }
+      .track-row .btn { justify-content: center; }
+      .nav-links .nav-hide { display: none; }
+    }
+  </style>
+</head>
+<body data-theme="home">
+  <section class="hero hero--banner hero--tracks">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand"><i data-lucide="compass"></i> Adventure Finder</a>
+      <div class="nav-links">
+        <a href="trails.html" class="nav-hide"><i data-lucide="footprints"></i> Trails</a>
+        <a href="index.html" class="btn btn-ghost">Home</a>
+      </div>
+    </nav>
+    <div class="hero-inner">
+      <div class="hero-kicker">GPX tools</div>
+      <h1 class="hero-title">Find the Tracks</h1>
+      <p class="hero-sub">Download a GPX track from a supported activity URL.</p>
+    </div>
+  </section>
+
+  <main>
+    <section class="section track-section">
+      <div class="section-inner">
+        <div class="track-card">
+          <h2><i data-lucide="map"></i> Strava activity</h2>
+          <p class="track-intro">Paste a Strava activity URL to open its official GPX export.</p>
+          <form class="track-form" id="track-form" novalidate>
+            <label class="track-label" for="activity-url">Activity URL</label>
+            <div class="track-row">
+              <input
+                class="track-input"
+                id="activity-url"
+                name="activity-url"
+                type="url"
+                inputmode="url"
+                autocomplete="url"
+                placeholder="https://www.strava.com/activities/19508251643"
+                required
+              />
+              <button class="btn btn-primary" type="submit">
+                Download GPX <i data-lucide="download"></i>
+              </button>
+            </div>
+            <div class="track-error" id="track-error" role="alert" aria-live="polite"></div>
+          </form>
+          <p class="track-note">
+            <i data-lucide="info"></i>
+            <span>Strava requires you to be signed in and only permits GPX export for activities your account is authorized to download.</span>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    GPX export is provided by <a href="https://www.strava.com/" target="_blank" rel="noreferrer">Strava</a>.
+  </footer>
+
+  <script>
+    const form = document.getElementById('track-form');
+    const input = document.getElementById('activity-url');
+    const error = document.getElementById('track-error');
+
+    function getStravaActivityId(value) {
+      try {
+        const url = new URL(value.trim());
+        const host = url.hostname.toLowerCase().replace(/^www\./, '');
+        const match = url.pathname.match(/^\/activities\/(\d+)\/?$/);
+        return url.protocol === 'https:' && host === 'strava.com' ? match?.[1] ?? null : null;
+      } catch {
+        return null;
+      }
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const activityId = getStravaActivityId(input.value);
+      if (!activityId) {
+        error.textContent = 'Enter a valid Strava activity URL, such as https://www.strava.com/activities/19508251643.';
+        input.focus();
+        return;
+      }
+
+      error.textContent = '';
+      window.location.assign(`https://www.strava.com/activities/${activityId}/export_gpx`);
+    });
+
+    input.addEventListener('input', () => {
+      error.textContent = '';
+    });
+
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

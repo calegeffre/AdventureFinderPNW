@@ -42,6 +42,20 @@
       background-size: cover;
       background-position: center;
     }
+    .activity-photo--tracks {
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(135deg, rgba(24, 94, 83, 0.9), rgba(53, 113, 144, 0.82)),
+        radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.2) 0 2px, transparent 3px);
+      background-size: auto, 28px 28px;
+    }
+    .activity-photo--tracks [data-lucide] {
+      width: 4.25rem;
+      height: 4.25rem;
+      color: #fff;
+      stroke-width: 1.5;
+    }
     .activity-body { padding: 1.4rem 1.4rem 1.6rem; display: flex; flex-direction: column; flex: 1; }
     .activity-icon { width: 2.2rem; height: 2.2rem; }
     .activity-title {
@@ -189,6 +203,18 @@
                 and difficulty filters so you can find your next adventure.
               </div>
               <span class="activity-cta">Open Trail Finder <i data-lucide="arrow-right"></i></span>
+            </div>
+          </a>
+
+          <a class="activity-card" href="gps.html">
+            <div class="activity-photo activity-photo--tracks"><i data-lucide="map"></i></div>
+            <div class="activity-body">
+              <i data-lucide="map" class="activity-icon"></i>
+              <div class="activity-title">Find the Tracks</div>
+              <div class="activity-desc">
+                Tool for downloading and importing GPX tracks from supported activity services.
+              </div>
+              <span class="activity-cta">Open Track Finder <i data-lucide="arrow-right"></i></span>
             </div>
           </a>
         </div>
