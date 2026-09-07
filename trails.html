@@ -69,7 +69,7 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
       padding: 0.9rem;
-      width: 190px;
+      width: 220px;
     }
     .sidebar-label {
       font-size: 0.68rem; font-weight: 600;
@@ -107,6 +107,58 @@
     .diff-moderate { background: #d29922; }
     .diff-hard     { background: #f85149; }
     .diff-epic     { background: #8957e5; }
+    .gpx-import {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid rgba(255,255,255,0.09);
+    }
+    .gpx-drop-zone {
+      display: grid;
+      justify-items: center;
+      gap: 0.3rem;
+      width: 100%;
+      padding: 0.75rem 0.55rem;
+      border: 1px dashed rgba(88,166,255,0.45);
+      border-radius: 9px;
+      background: rgba(88,166,255,0.06);
+      color: #8b949e;
+      font: 500 0.72rem/1.4 'Poppins', sans-serif;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .gpx-drop-zone:hover,
+    .gpx-drop-zone:focus-visible,
+    .gpx-drop-zone.drag-active {
+      outline: none;
+      background: rgba(88,166,255,0.16);
+      border-color: #58a6ff;
+      color: #e6edf3;
+    }
+    .gpx-drop-zone [data-lucide] { width: 1.25rem; height: 1.25rem; color: #58a6ff; }
+    .gpx-status {
+      min-height: 1.1rem;
+      margin-top: 0.45rem;
+      color: #8b949e;
+      font-size: 0.65rem;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .gpx-status.error { color: #ff7b72; }
+    .gpx-clear {
+      display: none;
+      width: 100%;
+      margin-top: 0.45rem;
+      padding: 0.32rem 0.5rem;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 7px;
+      background: transparent;
+      color: #8b949e;
+      font: 500 0.7rem 'Poppins', sans-serif;
+      cursor: pointer;
+    }
+    .gpx-clear.visible { display: block; }
+    .gpx-clear:hover { color: #e6edf3; border-color: rgba(255,255,255,0.22); }
     /* ── Info card ── */
     .info-card {
       position: fixed;
@@ -183,7 +235,7 @@
 
     @media (max-width: 600px) {
       .info-card { left: 0.75rem; right: 0.75rem; width: auto; bottom: 0.75rem; }
-      .sidebar { width: 160px; }
+      .sidebar { width: 180px; }
     }
   </style>
 </head>
@@ -246,6 +298,16 @@
         <span class="label"><span class="diff-dot diff-epic"></span>Epic</span>
         <span class="filter-count" id="count-epic">0</span>
       </button>
+    </div>
+    <div class="gpx-import">
+      <div class="sidebar-label">Your track</div>
+      <button class="gpx-drop-zone" id="gpx-drop-zone" type="button">
+        <i data-lucide="upload"></i>
+        <span>Drop GPX or choose file</span>
+      </button>
+      <input id="gpx-file" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden>
+      <div class="gpx-status" id="gpx-status" role="status" aria-live="polite"></div>
+      <button class="gpx-clear" id="gpx-clear" type="button">Clear imported track</button>
     </div>
   </aside>
 
@@ -445,6 +507,7 @@
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    const mapReady = new Promise((resolve) => map.once('load', resolve));
 
     // Dismiss splash once map first becomes idle (tiles loaded), with a fallback timeout
     function dismissSplash() {
@@ -627,6 +690,143 @@
 
     document.getElementById('info-close').addEventListener('click', () => {
       document.getElementById('info-card').classList.remove('visible');
+    });
+
+    // ── Local GPX import ───────────────────────────────────────────
+    const gpxInput = document.getElementById('gpx-file');
+    const gpxDropZone = document.getElementById('gpx-drop-zone');
+    const gpxStatus = document.getElementById('gpx-status');
+    const gpxClear = document.getElementById('gpx-clear');
+
+    function coordinatesFromPoints(points) {
+      return Array.from(points).map((point) => {
+        const lat = Number(point.getAttribute('lat'));
+        const lng = Number(point.getAttribute('lon'));
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+            lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          throw new Error('The GPX contains an invalid coordinate.');
+        }
+        return [lng, lat];
+      });
+    }
+
+    function parseGpx(text) {
+      const documentXml = new DOMParser().parseFromString(text, 'application/xml');
+      if (documentXml.querySelector('parsererror') || documentXml.documentElement.localName !== 'gpx') {
+        throw new Error('This file is not valid GPX.');
+      }
+
+      const features = [];
+      Array.from(documentXml.getElementsByTagNameNS('*', 'trkseg')).forEach((segment) => {
+        const coordinates = coordinatesFromPoints(segment.getElementsByTagNameNS('*', 'trkpt'));
+        if (coordinates.length >= 2) {
+          features.push({
+            type: 'Feature',
+            properties: { kind: 'track' },
+            geometry: { type: 'LineString', coordinates },
+          });
+        }
+      });
+
+      Array.from(documentXml.getElementsByTagNameNS('*', 'rte')).forEach((route) => {
+        const coordinates = coordinatesFromPoints(route.getElementsByTagNameNS('*', 'rtept'));
+        if (coordinates.length >= 2) {
+          features.push({
+            type: 'Feature',
+            properties: { kind: 'route' },
+            geometry: { type: 'LineString', coordinates },
+          });
+        }
+      });
+
+      if (!features.length) {
+        throw new Error('No track or route with at least two points was found.');
+      }
+
+      return { type: 'FeatureCollection', features };
+    }
+
+    function setGpxStatus(message, isError = false) {
+      gpxStatus.textContent = message;
+      gpxStatus.classList.toggle('error', isError);
+    }
+
+    async function importGpx(file) {
+      try {
+        if (!file || !file.name.toLowerCase().endsWith('.gpx')) {
+          throw new Error('Choose a file ending in .gpx.');
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error('Choose a GPX file smaller than 10 MB.');
+        }
+
+        setGpxStatus('Reading track...');
+        const geojson = parseGpx(await file.text());
+        const coordinates = geojson.features.flatMap((feature) => feature.geometry.coordinates);
+        await mapReady;
+
+        if (map.getSource('imported-gpx')) {
+          map.getSource('imported-gpx').setData(geojson);
+        } else {
+          map.addSource('imported-gpx', { type: 'geojson', data: geojson });
+          map.addLayer({
+            id: 'imported-gpx-casing',
+            type: 'line',
+            source: 'imported-gpx',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#0d1117',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 6, 4, 14, 9],
+              'line-opacity': 0.82,
+            },
+          });
+          map.addLayer({
+            id: 'imported-gpx-line',
+            type: 'line',
+            source: 'imported-gpx',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#58a6ff',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 14, 5],
+            },
+          });
+        }
+
+        const bounds = coordinates.reduce(
+          (currentBounds, coordinate) => currentBounds.extend(coordinate),
+          new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+        );
+        map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 1600 });
+        document.getElementById('info-card').classList.remove('visible');
+        setGpxStatus(`${file.name} · ${coordinates.length.toLocaleString()} points`);
+        gpxClear.classList.add('visible');
+      } catch (error) {
+        setGpxStatus(error instanceof Error ? error.message : 'Unable to import this GPX file.', true);
+      } finally {
+        gpxInput.value = '';
+        gpxDropZone.classList.remove('drag-active');
+      }
+    }
+
+    gpxDropZone.addEventListener('click', () => gpxInput.click());
+    gpxInput.addEventListener('change', () => importGpx(gpxInput.files[0]));
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      gpxDropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        gpxDropZone.classList.add('drag-active');
+      });
+    });
+    gpxDropZone.addEventListener('dragleave', () => gpxDropZone.classList.remove('drag-active'));
+    gpxDropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      importGpx(event.dataTransfer.files[0]);
+    });
+    gpxClear.addEventListener('click', () => {
+      if (map.getSource('imported-gpx')) {
+        map.getSource('imported-gpx').setData({ type: 'FeatureCollection', features: [] });
+      }
+      setGpxStatus('');
+      gpxClear.classList.remove('visible');
     });
 
     // ── Difficulty filter ─────────────────────────────────────────
