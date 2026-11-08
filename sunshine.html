@@ -54,6 +54,11 @@
       cursor: pointer;
     }
     .legend-toggle input { accent-color: var(--accent); cursor: pointer; }
+    .aqi-notice {
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
     #map button.panel-header {
       width: 100%;
       padding: 0;
@@ -443,6 +448,7 @@
     }
 
     function getAqiForDay(cityData, dayIndex) {
+      if (dayIndex >= AQI_FORECAST_DAYS) return null;
       if (!cityData.aqiHourly || !Array.isArray(cityData.aqiHourly)) return null;
       const startHour = dayIndex * 24;
       const endHour = startHour + 24;
@@ -599,6 +605,7 @@
           </div>
           <div class="legend-toggle">
             <label><input type="checkbox" id="toggleAqi"> Show AQI</label>
+            <div id="aqiNotice" class="aqi-notice" role="status" hidden></div>
           </div>
         </div>
       `);
@@ -1021,9 +1028,19 @@
       markers = [];
     }
     
+    function updateAqiNotice(dayIndex) {
+      const notice = document.getElementById('aqiNotice');
+      const beyondLimit = dayIndex >= AQI_FORECAST_DAYS;
+      const missingData = allCityData.length > 0 &&
+        allCityData.every(city => getAqiForDay(city, dayIndex) === null);
+      notice.textContent = 'No data';
+      notice.hidden = !(showAqi && (beyondLimit || missingData));
+    }
+
     function displayWeatherForDay(dayIndex) {
       clearMarkers();
       selectedDayIndex = dayIndex;
+      updateAqiNotice(dayIndex);
       
       const isToday = dayIndex === 0;
       
