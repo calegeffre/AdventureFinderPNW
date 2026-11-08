@@ -53,6 +53,15 @@
       cursor: pointer;
     }
     .legend-toggle input { accent-color: var(--accent); cursor: pointer; }
+    #map button.panel-header {
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+    }
 
     /* Map popups render on a fixed light bubble, so they stay un-themed */
     .city-popup { text-align: center; }
@@ -546,7 +555,7 @@
       return {
         onAdd() {
           const div = document.createElement('div');
-          div.className = className;
+          div.className = `maplibregl-ctrl ${className}`;
           div.innerHTML = html;
           if (window.matchMedia(MOBILE_BREAKPOINT).matches) {
             div.classList.add('panel-collapsed');
@@ -554,8 +563,11 @@
           ['click', 'dblclick', 'mousedown', 'touchstart', 'wheel'].forEach((eventName) => {
             div.addEventListener(eventName, (event) => event.stopPropagation());
           });
-          div.querySelector('.panel-header')?.addEventListener('click', () => {
+          const panelHeader = div.querySelector('.panel-header');
+          panelHeader?.setAttribute('aria-expanded', String(!div.classList.contains('panel-collapsed')));
+          panelHeader?.addEventListener('click', () => {
             div.classList.toggle('panel-collapsed');
+            panelHeader.setAttribute('aria-expanded', String(!div.classList.contains('panel-collapsed')));
           });
           return div;
         },
@@ -565,9 +577,9 @@
 
     // Add legend
     const legend = createPanelControl('legend', `
-        <div class="panel-header">
+        <button class="panel-header" type="button">
           <h4>Weather</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
-        </div>
+        </button>
         <div class="panel-body">
           <div class="legend-item"><i data-lucide="sun" class="legend-icon"></i> Clear/Sunny</div>
           <div class="legend-item"><i data-lucide="cloud-sun" class="legend-icon"></i> Mainly Clear</div>
@@ -592,9 +604,9 @@
 
     // Top 3 Closest Sunshine panel (topleft)
     const top3Control = createPanelControl('top3-panel', `
-        <div class="panel-header">
+        <button class="panel-header" type="button">
           <h4><i data-lucide="trophy" class="icon"></i> 3 Closest Sunny Spots</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
-        </div>
+        </button>
         <div class="panel-body">
           <div id="top3Content"><div class="top3-none">Loading...</div></div>
         </div>

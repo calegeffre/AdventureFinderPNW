@@ -58,7 +58,7 @@
 
     .best-panel { min-width: 245px; max-width: 285px; }
     .surf-guide-panel { width: min(460px, calc(100vw - 6rem)); }
-    .surf-guide-panel .panel-header {
+    #map button.panel-header {
       width: 100%;
       padding: 0;
       border: 0;
@@ -529,7 +529,7 @@
       return {
         onAdd() {
           const div = document.createElement('div');
-          div.className = className;
+          div.className = `maplibregl-ctrl ${className}`;
           div.innerHTML = html;
           if (initiallyCollapsed || window.matchMedia(MOBILE_BREAKPOINT).matches) {
             div.classList.add('panel-collapsed');
@@ -567,9 +567,9 @@
     map.addControl(legend, 'top-right');
 
     const bestSurfControl = createPanelControl('map-panel best-panel', `
-        <div class="panel-header">
+        <button class="panel-header" type="button">
           <h4><i data-lucide="waves" class="icon"></i> Best Surf</h4><span class="panel-toggle"><i data-lucide="chevron-down"></i></span>
-        </div>
+        </button>
         <div class="panel-body">
           <div id="bestSurfContent"><div class="panel-empty">Loading surf lineup...</div></div>
         </div>
