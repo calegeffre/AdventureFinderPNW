@@ -8,6 +8,7 @@
     "watch:css": "tailwindcss -i ./src/app.css -o ./dist/adventurefinder.css --watch",
     "screenshot": "node test/screenshot.js",
     "test:expanded": "node test/expanded-search.js",
+    "test:aqi": "node --test test/aqi-forecast.js",
     "generate:burn-zones": "node scripts/generate-burn-zones.js"
   },
   "repository": {
