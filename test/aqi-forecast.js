@@ -38,6 +38,8 @@ for (const [day, dayOfWeek, weatherDays] of [['Sunday', 0, 8], ['Saturday', 6, 9
     const aqi = requests.find(url => url.hostname === 'air-quality-api.open-meteo.com');
     assert.ok(weather, 'Weather request must be made');
     assert.ok(aqi, 'AQI request must be made');
+    assert.ok(weather.searchParams.get('daily').split(',').includes('sunrise'));
+    assert.ok(weather.searchParams.get('daily').split(',').includes('sunset'));
     assert.equal(Number(weather.searchParams.get('forecast_days')), weatherDays);
     const aqiDays = Number(aqi.searchParams.get('forecast_days'));
     assert.ok(Number.isInteger(aqiDays) && aqiDays >= 1 && aqiDays <= 7,

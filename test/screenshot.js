@@ -116,6 +116,8 @@ function buildMockWeather(url) {
     daily_units: { time: 'iso8601', weather_code: 'wmo code', temperature_2m_max: '°F', temperature_2m_min: '°F' },
     daily: {
       time: dates,
+      sunrise: dates.map(date => `${date}T07:00`),
+      sunset: dates.map(date => `${date}T19:00`),
       weather_code: weatherCodes,
       temperature_2m_max: maxTemps,
       temperature_2m_min: minTemps,

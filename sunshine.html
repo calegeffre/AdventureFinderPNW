@@ -394,50 +394,53 @@
       return code === 0 || code === 1 || code === 2;
     }
 
-    // Daylight window used to evaluate the day's dominant weather pattern.
-    const DAYLIGHT_START_HOUR = 7;  // 7 am (inclusive)
-    const DAYLIGHT_END_HOUR   = 19; // 7 pm (exclusive)
     // Fraction of daylight hours that must be partly-sunny-or-better for a day
-    // to be considered "sunny".  0.5 = majority required.
+    // to be considered "sunny".  0.5 = at least half.
     const SUNNY_MAJORITY_THRESHOLD = 0.5;
 
+    function getDaylightWeatherCodes(cityData, dayIndex) {
+      const daily = cityData.dailyData;
+      const hourly = cityData.hourlyData;
+      const date = daily?.time?.[dayIndex];
+      const sunrise = daily?.sunrise?.[dayIndex];
+      const sunset = daily?.sunset?.[dayIndex];
+      if (!date || !sunrise || !sunset || !Array.isArray(hourly?.time) ||
+          !Array.isArray(hourly?.weather_code) || !sunrise.startsWith(`${date}T`) ||
+          !sunset.startsWith(`${date}T`) || sunrise >= sunset) {
+        console.warn(`Daylight forecast unavailable for ${cityData.name} on ${date || `day ${dayIndex}`}; using daily weather.`);
+        return [];
+      }
+
+      const codes = hourly.time.flatMap((time, index) =>
+        time >= sunrise && time < sunset && Number.isFinite(hourly.weather_code[index])
+          ? [hourly.weather_code[index]]
+          : []
+      );
+      if (!codes.length) {
+        console.warn(`No hourly daylight weather for ${cityData.name} on ${date}; using daily weather.`);
+      }
+      return codes;
+    }
+
     // Returns true if at least SUNNY_MAJORITY_THRESHOLD of daylight hours
-    // (7 am-7 pm) for the given day have a partly-sunny-or-better code (0/1/2).
+    // for the given day have a partly-sunny-or-better code (0/1/2).
     // Falls back to the daily code when hourly data is unavailable.
     function hasSufficientSunshine(cityData, dayIndex) {
-      if (cityData.hourlyData && cityData.hourlyData.weather_code) {
-        const dayStart = dayIndex * 24;
-        const codes = cityData.hourlyData.weather_code;
-        let sunnyCount = 0;
-        let totalDaylight = 0;
-        for (let h = DAYLIGHT_START_HOUR; h < DAYLIGHT_END_HOUR; h++) {
-          const i = dayStart + h;
-          if (i >= codes.length) continue;
-          totalDaylight++;
-          if (isPartlySunnyOrBetter(codes[i])) sunnyCount++;
-        }
-        if (totalDaylight === 0) {
-          return cityData.dailyData && isPartlySunnyOrBetter(cityData.dailyData.weather_code[dayIndex]);
-        }
-        return sunnyCount / totalDaylight >= SUNNY_MAJORITY_THRESHOLD;
+      const codes = getDaylightWeatherCodes(cityData, dayIndex);
+      if (codes.length) {
+        return codes.filter(isPartlySunnyOrBetter).length / codes.length >= SUNNY_MAJORITY_THRESHOLD;
       }
-      // Fallback: use daily code
       return cityData.dailyData && isPartlySunnyOrBetter(cityData.dailyData.weather_code[dayIndex]);
     }
 
     // Returns the dominant (most frequent) hourly weather code during daylight
-    // hours (7 am-7 pm) for the given day, or the daily code as fallback.
+    // for the given day, or the daily code as fallback.
     // Ties are broken by preferring the lower (sunnier) code.
     function dominantDaylightCode(cityData, dayIndex) {
-      if (cityData.hourlyData && cityData.hourlyData.weather_code) {
-        const dayStart = dayIndex * 24;
-        const codes = cityData.hourlyData.weather_code;
+      const codes = getDaylightWeatherCodes(cityData, dayIndex);
+      if (codes.length) {
         const freq = {};
-        for (let h = DAYLIGHT_START_HOUR; h < DAYLIGHT_END_HOUR; h++) {
-          const i = dayStart + h;
-          if (i >= codes.length) continue;
-          freq[codes[i]] = (freq[codes[i]] || 0) + 1;
-        }
+        codes.forEach(code => { freq[code] = (freq[code] || 0) + 1; });
         const entries = Object.entries(freq);
         if (entries.length > 0) {
           entries.sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]));
@@ -956,7 +959,7 @@
     }
 
     async function fetchWeatherForCity(city, forecastDays) {
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration,sunrise,sunset&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
       const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=us_aqi&timezone=America%2FLos_Angeles&forecast_days=${AQI_FORECAST_DAYS}`;
       
       try {
