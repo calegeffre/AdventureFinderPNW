@@ -41,7 +41,7 @@ SunshineFinder is built on top of these great open source projects:
 
 | Library | Version | What we use it for |
 |---|---|---|
-| [MapLibre GL JS](https://maplibre.org/) | 4.7.1 | WebGL maps, controls, markers, overlays, and 3D terrain across Sunshine, Waves, and Trails |
+| [MapLibre GL JS](https://maplibre.org/) | 6.18.0 | WebGL2 maps, controls, markers, overlays, and 3D terrain across Sunshine, Waves, and Trails |
 | [Open-Meteo API](https://open-meteo.com/) | — | Free, no-auth weather forecast data (WMO weather codes, temperature) |
 | [OpenFreeMap](https://openfreemap.org/) | — | Keyless vector basemaps for Sunshine, Waves, and Trails (OpenStreetMap data) |
 | [Mapterhorn](https://mapterhorn.com/) | — | CORS-enabled Terrarium elevation tiles used for 3D terrain and hillshading on the Trail Finder |
@@ -84,13 +84,15 @@ A security advisory check was performed against the [GitHub Advisory Database](h
 | Package | Version | Vulnerabilities found |
 |---|---|---|
 | `playwright` | ^1.58.2 | ✅ None |
-| `maplibre-gl` | 4.7.1 | Not re-audited as part of this migration |
+| `maplibre-gl` | 6.18.0 | Includes the attribution sanitizer fix for GHSA-jrc7-96c5-q579 (fixed in 6.4.1) |
 
 **Additional notes:**
 
 - **Open-Meteo API** — requests are read-only `GET` calls to a public, unauthenticated endpoint. No credentials are stored or transmitted.
 - **OpenFreeMap** — vector basemap requests require no API key and retain visible OpenStreetMap/OpenMapTiles attribution.
 - **MapLibre test assets** are loaded from the pinned npm dependency rather than fetched from a CDN during screenshot generation.
+- **MapLibre v6** is loaded as an ES module and requires a browser/device with WebGL2 support. Serve the pages over HTTP(S), including during local development.
+- **Map rendering regression checks**: run `npm run test:maps` to exercise Sunshine/Waves markers and popups, burn-zone rendering, and Trails terrain/filtering using mocked network data.
 - The app itself is a fully client-side, single HTML file with no backend and no user authentication, which keeps the attack surface minimal.
 
 ## License

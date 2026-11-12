@@ -25,6 +25,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { routeMapLibreAssets } = require('./maplibre-assets');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -136,11 +137,8 @@ function buildMockWeather(url) {
 (async () => {
   fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
-  const maplibreJs = fs.readFileSync(require.resolve('maplibre-gl/dist/maplibre-gl.js'), 'utf8');
-  const maplibreCss = fs.readFileSync(require.resolve('maplibre-gl/dist/maplibre-gl.css'), 'utf8');
-
   const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
+    executablePath: process.env.CHROMIUM_PATH || chromium.executablePath(),
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
 
@@ -148,13 +146,7 @@ function buildMockWeather(url) {
   await page.setViewportSize({ width: 1280, height: 800 });
 
   // ---- Route: MapLibre from CDN ------------------------------------------
-  await page.route('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', route =>
-    route.fulfill({ status: 200, contentType: 'application/javascript', body: maplibreJs })
-  );
-
-  await page.route('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css', route =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: maplibreCss })
-  );
+  await routeMapLibreAssets(page);
 
   // ---- Route: OpenFreeMap style ------------------------------------------
   await page.route('https://tiles.openfreemap.org/styles/liberty', route =>
