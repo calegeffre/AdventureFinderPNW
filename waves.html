@@ -722,6 +722,10 @@
           throw new Error('No wave data returned');
         }
 
+        updateTabLabels();
+        const activeTab = document.querySelector('.tab.active');
+        selectedDayIndex = Number(activeTab.dataset.dayIndex ?? activeTab.dataset.day);
+
         displaySurfForDay(selectedDayIndex);
         document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
       } catch (error) {
