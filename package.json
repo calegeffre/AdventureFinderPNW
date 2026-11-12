@@ -10,6 +10,7 @@
     "test:expanded": "node test/expanded-search.js",
     "test:aqi": "node --test test/aqi-forecast.js",
     "test:daylight": "node --test test/daylight.js",
+    "test:weekend": "node --test test/weekend-refresh.js",
     "generate:burn-zones": "node scripts/generate-burn-zones.js"
   },
   "repository": {

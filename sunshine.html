@@ -1102,6 +1102,10 @@
       // Fetch all city weather in parallel
       const weatherPromises = cities.map(city => fetchWeatherForCity(city, forecastDaysNeeded));
       allCityData = await Promise.all(weatherPromises);
+
+      updateTabLabels();
+      const activeTab = document.querySelector('.tab.active');
+      selectedDayIndex = parseInt(activeTab.dataset.dayIndex ?? activeTab.dataset.day);
       
       // Display weather for currently selected day
       displayWeatherForDay(selectedDayIndex);
