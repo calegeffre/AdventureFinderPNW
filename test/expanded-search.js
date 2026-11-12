@@ -9,9 +9,9 @@
  *   get the default [3, 3] treatment from buildMockWeather().
  *   All 18 fallback cities → overcast (code 3)  – same reason.
  *   Three expanded cities → sunny:
- *     Victoria BC    (48.4284, -123.3656)  ~74 mi  → code 0 (Clear Sky)
  *     Aberdeen WA    (46.9759, -123.8157)  ~81 mi  → code 1 (Mainly Clear)
  *     Ocean Shores WA (47.0043, -124.1557) ~94 mi  → code 1 (Mainly Clear)
+ *     Long Beach WA  (46.3518, -124.0522)         → code 0 (Clear Sky)
  *
  * Expected result:
  *   Top 3 panel shows those three cities (not "No sunny spots found").
@@ -37,9 +37,9 @@ const INDEX_HTML = path.join(REPO_ROOT, 'sunshine.html');
 // receive the default [3, 3] (overcast) codes.
 // ---------------------------------------------------------------------------
 const CITY_CODES = {
-  '48.4284:-123.3656': [0, 0],   // Victoria BC  – clear sky
   '46.9759:-123.8157': [1, 0],   // Aberdeen WA  – mainly clear
   '47.0043:-124.1557': [1, 0],   // Ocean Shores WA – mainly clear
+  '46.3518:-124.0522': [0, 0],   // Long Beach WA – clear sky
 };
 
 function latLonKey(url) {
@@ -175,7 +175,7 @@ function buildMockWeather(url) {
     console.log('PASS: panel does not show "No sunny spots found"');
   }
 
-  const expectedCities = ['Victoria BC', 'Aberdeen WA', 'Ocean Shores WA'];
+  const expectedCities = ['Aberdeen WA', 'Ocean Shores WA', 'Long Beach WA'];
   for (const city of expectedCities) {
     if (panelText.includes(city)) {
       console.log(`PASS: panel contains "${city}"`);
