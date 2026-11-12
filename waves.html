@@ -436,11 +436,12 @@
     }
 
     async function fetchWaveForecast(spot, forecastDays) {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const params = new URLSearchParams({
         latitude: String(spot.lat),
         longitude: String(spot.lon),
         daily: 'wave_height_max,wave_direction_dominant,wave_period_max',
-        timezone: 'America/Los_Angeles',
+        timezone,
         forecast_days: String(forecastDays)
       });
 

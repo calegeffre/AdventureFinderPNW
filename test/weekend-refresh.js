@@ -68,6 +68,7 @@ function createPage(initialTime, pageName) {
       }
     },
     console,
+    Intl,
     URLSearchParams,
     document: {
       getElementById: id => elements[id],

@@ -15,6 +15,82 @@ const functions = ['calculateForecastDays', 'fetchWeatherForCity', 'updateAqiNot
   return match[0];
 }).join('\n');
 
+const wavesHtml = fs.readFileSync(path.join(__dirname, '..', 'waves.html'), 'utf8');
+const waveFunction = wavesHtml.match(/    async function fetchWaveForecast\([^]*?^    \}/m);
+assert.ok(waveFunction, 'Missing fetchWaveForecast');
+
+for (const [timezone, instant] of [
+  ['America/New_York', '2026-11-12T05:30:00Z'],
+  ['Asia/Tokyo', '2026-11-11T16:30:00Z']
+]) {
+  for (const hostname of ['api.open-meteo.com', 'air-quality-api.open-meteo.com', 'marine-api.open-meteo.com']) {
+    test(`${hostname} uses the browser timezone ${timezone} when its date differs from Pacific`, async () => {
+      const previousTimezone = process.env.TZ;
+      process.env.TZ = timezone;
+      try {
+        const requests = [];
+        const now = new Date(instant);
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        assert.equal(browserTimezone, timezone, 'Test must simulate the requested browser timezone');
+        const localDate = now.toLocaleDateString('en-CA');
+        assert.equal(localDate, '2026-11-12');
+        assert.equal(now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }), '2026-11-11');
+
+        const context = vm.createContext({
+          Intl,
+          URLSearchParams,
+          Date: class extends Date {
+            constructor(...args) {
+              super(...(args.length ? args : [instant]));
+            }
+          },
+          console,
+          fetch: async url => {
+            const request = new URL(url);
+            requests.push(request);
+            const date = now.toLocaleDateString('en-CA', {
+              timeZone: request.searchParams.get('timezone')
+            });
+            return {
+              ok: true,
+              json: async () => ({
+                daily: { time: [date] },
+                hourly: { time: [`${date}T00:00`], us_aqi: [42] },
+                current: { temperature_2m: 50 }
+              })
+            };
+          }
+        });
+        vm.runInContext(`${aqiConstant[0]}\n${functions}\n${waveFunction[0]}`, context);
+        await vm.runInContext(
+          hostname === 'marine-api.open-meteo.com'
+            ? 'fetchWaveForecast({ name: "Westport", lat: 46.9045, lon: -124.1051 }, calculateForecastDays().forecastDaysNeeded)'
+            : 'fetchWeatherForCity({ name: "Seattle", lat: 47.6062, lon: -122.3321 }, calculateForecastDays().forecastDaysNeeded)',
+          context
+        );
+        const request = requests.find(url => url.hostname === hostname);
+        assert.ok(request, 'Expected forecast request must be made');
+        const requestTimezone = request.searchParams.get('timezone');
+        assert.ok(request.href.includes(`timezone=${encodeURIComponent(browserTimezone)}&`),
+          'Browser timezone must be URL-encoded');
+        assert.deepEqual({
+          timezone: requestTimezone,
+          forecastStartDate: now.toLocaleDateString('en-CA', { timeZone: requestTimezone })
+        }, {
+          timezone: browserTimezone,
+          forecastStartDate: localDate
+        }, 'Forecast timezone and Today must match the browser, not the city timezone');
+      } finally {
+        if (previousTimezone === undefined) {
+          delete process.env.TZ;
+        } else {
+          process.env.TZ = previousTimezone;
+        }
+      }
+    });
+  }
+}
+
 for (const [day, dayOfWeek, weatherDays] of [['Sunday', 0, 8], ['Saturday', 6, 9]]) {
   test(`${day}: AQI stays within 7 days while weather covers ${weatherDays}`, async () => {
     const requests = [];

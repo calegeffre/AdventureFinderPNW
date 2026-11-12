@@ -959,8 +959,9 @@
     }
 
     async function fetchWeatherForCity(city, forecastDays) {
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration,sunrise,sunset&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=${forecastDays}`;
-      const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=us_aqi&timezone=America%2FLos_Angeles&forecast_days=${AQI_FORECAST_DAYS}`;
+      const timezone = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration,sunrise,sunset&hourly=weather_code&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=${timezone}&forecast_days=${forecastDays}`;
+      const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=us_aqi&timezone=${timezone}&forecast_days=${AQI_FORECAST_DAYS}`;
       
       try {
         const response = await fetch(weatherUrl);
